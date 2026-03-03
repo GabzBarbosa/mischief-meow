@@ -178,7 +178,7 @@ export class Game {
   time = 0;
   frameCount = 0;
   currentLevel = 1;
-  maxLevel = 2;
+  maxLevel = 3;
   selectedCat = 0;
 
 
@@ -233,7 +233,9 @@ export class Game {
     this.particles = [];
     this.collectedKeys = 0;
 
-    if (this.currentLevel === 2) {
+    if (this.currentLevel === 3) {
+      this.initLevel3();
+    } else if (this.currentLevel === 2) {
       this.initLevel2();
     } else {
       this.initLevel1();
@@ -498,6 +500,188 @@ export class Game {
         facing: -1, state: 'normal',
         stateTimer: 0, investigateX: 0,
         speed: 2.0, visionRange: 220, visionAngle: Math.PI / 2,
+      },
+    ];
+  }
+
+  initLevel3() {
+    this.levelWidth = 80 * TILE;
+
+    // Player - apenas 5 vidas na fase mais difícil
+    this.player = {
+      x: 3 * TILE, y: 11 * TILE,
+      vx: 0, vy: 0,
+      w: CAT_W, h: CAT_H,
+      grounded: false, crouching: false,
+      facing: 1, hidden: false,
+      lives: 5, invincible: 0,
+      animFrame: 0, animTimer: 0,
+      interactCooldown: 0,
+    };
+
+    // === TELHADOS NOTURNOS - layout vertical e complexo ===
+    this.platforms = [
+      // Chão base
+      { x: 0, y: 13 * TILE, w: 80 * TILE, h: 2 * TILE },
+      // Paredes
+      { x: 0, y: 0, w: TILE, h: 15 * TILE },
+      { x: 79 * TILE, y: 0, w: TILE, h: 15 * TILE },
+      // Teto
+      { x: 0, y: 0, w: 80 * TILE, h: TILE },
+
+      // === PRÉDIO 1 - Apartamento inicial ===
+      { x: 3 * TILE, y: 10 * TILE, w: 5 * TILE, h: TILE },
+      { x: 4 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 9 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+
+      // === TELHADO 1 - Transição externa ===
+      { x: 13 * TILE, y: 9 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 15 * TILE, y: 6 * TILE, w: 2 * TILE, h: TILE / 2 },
+
+      // === PRÉDIO 2 - Edifício com varal ===
+      { x: 19 * TILE, y: 8 * TILE, w: 6 * TILE, h: TILE },
+      { x: 20 * TILE, y: 5 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 19 * TILE, y: 11 * TILE, w: 6 * TILE, h: TILE / 2 },
+      // Varal (plataformas finas)
+      { x: 26 * TILE, y: 7 * TILE, w: 5 * TILE, h: TILE / 4 },
+
+      // === ZONA DE PERIGO - Beco estreito ===
+      { x: 32 * TILE, y: 10 * TILE, w: 2 * TILE, h: TILE / 2 },
+      { x: 35 * TILE, y: 8 * TILE, w: 2 * TILE, h: TILE / 2 },
+      { x: 33 * TILE, y: 12 * TILE, w: 3 * TILE, h: TILE / 2 },
+
+      // === PRÉDIO 3 - Escritório abandonado ===
+      { x: 38 * TILE, y: 9 * TILE, w: 7 * TILE, h: TILE },
+      { x: 39 * TILE, y: 6 * TILE, w: 5 * TILE, h: TILE / 2 },
+      { x: 40 * TILE, y: 3 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 38 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 43 * TILE, y: 11 * TILE, w: 2 * TILE, h: TILE / 2 },
+
+      // === TELHADOS ALTOS - Parkour vertical ===
+      { x: 47 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 48 * TILE, y: 8 * TILE, w: 2 * TILE, h: TILE / 2 },
+      { x: 51 * TILE, y: 10 * TILE, w: 2 * TILE, h: TILE / 2 },
+      { x: 51 * TILE, y: 6 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 55 * TILE, y: 8 * TILE, w: 2 * TILE, h: TILE / 2 },
+      { x: 54 * TILE, y: 4 * TILE, w: 3 * TILE, h: TILE / 2 },
+
+      // === PRÉDIO FINAL - Cobertura ===
+      { x: 58 * TILE, y: 10 * TILE, w: 8 * TILE, h: TILE },
+      { x: 59 * TILE, y: 7 * TILE, w: 6 * TILE, h: TILE / 2 },
+      { x: 60 * TILE, y: 4 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 67 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 67 * TILE, y: 8 * TILE, w: 3 * TILE, h: TILE / 2 },
+
+      // === PLATAFORMA SECRETA - Caminho alternativo ===
+      { x: 71 * TILE, y: 6 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 74 * TILE, y: 9 * TILE, w: 3 * TILE, h: TILE / 2 },
+    ];
+
+    // Muitos objetos para causar caos
+    this.objects = [
+      // Prédio 1
+      { x: 4 * TILE, y: 10 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 140, broken: false, breakable: true, color: COL.vase },
+      { x: 6 * TILE, y: 10 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: COL.cup },
+      { x: 5 * TILE, y: 7 * TILE - 16 + 8, w: 12, h: 12, type: 'plant', falling: false, vy: 0, grounded: true, noiseRadius: 120, broken: false, breakable: true, color: COL.plant },
+      { x: 10 * TILE, y: 11 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: COL.cup },
+      // Prédio 2
+      { x: 20 * TILE, y: 8 * TILE - 18, w: 10, h: 16, type: 'lamp', falling: false, vy: 0, grounded: true, noiseRadius: 120, broken: false, breakable: true, color: COL.lamp },
+      { x: 23 * TILE, y: 8 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 140, broken: false, breakable: true, color: COL.vase },
+      { x: 21 * TILE, y: 5 * TILE - 12, w: 14, h: 10, type: 'book', falling: false, vy: 0, grounded: true, noiseRadius: 80, broken: false, breakable: false, color: COL.book },
+      { x: 20 * TILE, y: 11 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: COL.cup },
+      { x: 23 * TILE, y: 11 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 140, broken: false, breakable: true, color: COL.vase },
+      // Escritório abandonado
+      { x: 39 * TILE, y: 9 * TILE - 18, w: 10, h: 16, type: 'lamp', falling: false, vy: 0, grounded: true, noiseRadius: 120, broken: false, breakable: true, color: COL.lamp },
+      { x: 42 * TILE, y: 9 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 140, broken: false, breakable: true, color: COL.vase },
+      { x: 40 * TILE, y: 6 * TILE - 12, w: 14, h: 10, type: 'book', falling: false, vy: 0, grounded: true, noiseRadius: 80, broken: false, breakable: false, color: COL.book },
+      { x: 43 * TILE, y: 6 * TILE - 12, w: 12, h: 12, type: 'plant', falling: false, vy: 0, grounded: true, noiseRadius: 120, broken: false, breakable: true, color: COL.plant },
+      { x: 41 * TILE, y: 3 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 140, broken: false, breakable: true, color: COL.vase },
+      // Prédio final
+      { x: 60 * TILE, y: 10 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 140, broken: false, breakable: true, color: COL.vase },
+      { x: 63 * TILE, y: 10 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: COL.cup },
+      { x: 61 * TILE, y: 7 * TILE - 18, w: 10, h: 16, type: 'lamp', falling: false, vy: 0, grounded: true, noiseRadius: 120, broken: false, breakable: true, color: COL.lamp },
+      { x: 62 * TILE, y: 4 * TILE - 12, w: 12, h: 12, type: 'plant', falling: false, vy: 0, grounded: true, noiseRadius: 120, broken: false, breakable: true, color: COL.plant },
+      { x: 68 * TILE, y: 8 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 140, broken: false, breakable: true, color: COL.vase },
+    ];
+
+    // Coletáveis espalhados estrategicamente
+    this.collectibles = [
+      // Prédio 1
+      { x: 5 * TILE, y: 6 * TILE, type: 'fish', collected: false, animTimer: 0 },
+      { x: 7 * TILE, y: 9 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      // Telhado 1
+      { x: 14 * TILE, y: 8 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 16 * TILE, y: 5 * TILE, type: 'yarn', collected: false, animTimer: Math.random() * 100 },
+      // Prédio 2
+      { x: 22 * TILE, y: 4 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 28 * TILE, y: 6 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      // Beco
+      { x: 33 * TILE, y: 9 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 36 * TILE, y: 7 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      // Escritório
+      { x: 41 * TILE, y: 2 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 44 * TILE, y: 10 * TILE, type: 'yarn', collected: false, animTimer: Math.random() * 100 },
+      // Parkour
+      { x: 52 * TILE, y: 5 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 55 * TILE, y: 3 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      // Prédio final
+      { x: 61 * TILE, y: 3 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 64 * TILE, y: 9 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      // Chave no caminho secreto!
+      { x: 72 * TILE, y: 5 * TILE, type: 'key', collected: false, animTimer: Math.random() * 100 },
+      // Bônus secreto
+      { x: 75 * TILE, y: 8 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+    ];
+
+    // Saída escondida na cobertura
+    this.exit = { x: 76 * TILE, y: 6 * TILE, w: TILE * 1.5, h: 3 * TILE, locked: true };
+
+    // 5 inimigos! Muito rápidos e com visão ampla
+    this.enemies = [
+      // Guarda do prédio 1
+      {
+        x: 8 * TILE, y: 13 * TILE - 40,
+        w: 18, h: 38,
+        patrolA: 3 * TILE, patrolB: 14 * TILE,
+        facing: 1, state: 'normal',
+        stateTimer: 0, investigateX: 0,
+        speed: 1.8, visionRange: 180, visionAngle: Math.PI / 2.5,
+      },
+      // Guarda do prédio 2
+      {
+        x: 22 * TILE, y: 13 * TILE - 40,
+        w: 18, h: 38,
+        patrolA: 18 * TILE, patrolB: 32 * TILE,
+        facing: -1, state: 'normal',
+        stateTimer: 0, investigateX: 0,
+        speed: 2.0, visionRange: 200, visionAngle: Math.PI / 2.5,
+      },
+      // Guarda do beco - patrulha curta mas rápido
+      {
+        x: 34 * TILE, y: 13 * TILE - 40,
+        w: 18, h: 38,
+        patrolA: 31 * TILE, patrolB: 38 * TILE,
+        facing: 1, state: 'normal',
+        stateTimer: 0, investigateX: 0,
+        speed: 2.5, visionRange: 160, visionAngle: Math.PI / 2,
+      },
+      // Guarda do escritório - visão enorme
+      {
+        x: 42 * TILE, y: 13 * TILE - 40,
+        w: 18, h: 38,
+        patrolA: 37 * TILE, patrolB: 50 * TILE,
+        facing: -1, state: 'normal',
+        stateTimer: 0, investigateX: 0,
+        speed: 1.6, visionRange: 250, visionAngle: Math.PI / 2,
+      },
+      // Guarda final - o mais perigoso
+      {
+        x: 62 * TILE, y: 13 * TILE - 40,
+        w: 18, h: 38,
+        patrolA: 57 * TILE, patrolB: 76 * TILE,
+        facing: 1, state: 'normal',
+        stateTimer: 0, investigateX: 0,
+        speed: 2.2, visionRange: 240, visionAngle: Math.PI / 2,
       },
     ];
   }
