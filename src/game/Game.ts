@@ -70,6 +70,25 @@ interface Particle {
   size: number;
 }
 
+interface CatSkin {
+  name: string;
+  body: string;
+  bodyLight: string;
+  bodyDark: string;
+  eye: string;
+  nose: string;
+  description: string;
+}
+
+const CAT_SKINS: CatSkin[] = [
+  { name: 'SHADOW', body: '#3a3a3a', bodyLight: '#555555', bodyDark: '#252525', eye: '#44cc66', nose: '#ff8899', description: 'Gato cinza clássico' },
+  { name: 'LARANJA', body: '#cc7722', bodyLight: '#dd9944', bodyDark: '#995511', eye: '#44bb44', nose: '#ff6666', description: 'Gato laranja travesso' },
+  { name: 'BRANCO', body: '#cccccc', bodyLight: '#eeeeee', bodyDark: '#999999', eye: '#4488dd', nose: '#ffaaaa', description: 'Gato branco elegante' },
+  { name: 'PRETO', body: '#1a1a1a', bodyLight: '#333333', bodyDark: '#0a0a0a', eye: '#ffcc00', nose: '#cc6677', description: 'Gato preto misterioso' },
+  { name: 'SIAMÊS', body: '#d4c4a0', bodyLight: '#e8dcc0', bodyDark: '#6b5040', eye: '#4488cc', nose: '#cc8888', description: 'Gato siamês esperto' },
+  { name: 'MALHADO', body: '#887744', bodyLight: '#aa9966', bodyDark: '#554422', eye: '#66cc44', nose: '#ff9988', description: 'Gato malhado aventureiro' },
+];
+
 // --- CONSTANTS ---
 const TILE = 32;
 const GRAVITY = 0.55;
@@ -87,6 +106,8 @@ const COL = {
   wall: '#2a2f45',
   wallLight: '#353b55',
   floor: '#3d3528',
+  // Cat colors will be overridden by selected skin
+  // These are defaults used as fallback
   floorLight: '#4d4538',
   furniture: '#4a3f30',
   furnitureLight: '#5a4f40',
@@ -150,14 +171,17 @@ export class Game {
   totalFish = 0;
   collectedKeys = 0;
   seen = false;
-  gameState: 'title' | 'playing' | 'gameover' | 'win' = 'title';
+  gameState: 'title' | 'charSelect' | 'playing' | 'gameover' | 'win' = 'title';
   camera = { x: 0 };
   levelWidth = 1600;
-  stealthMeter = 0; // 0 = hidden, 100 = fully exposed
+  stealthMeter = 0;
   time = 0;
   frameCount = 0;
   currentLevel = 1;
   maxLevel = 2;
+  selectedCat = 0;
+
+
 
   private boundKeyDown: (e: KeyboardEvent) => void;
   private boundKeyUp: (e: KeyboardEvent) => void;
@@ -893,6 +917,12 @@ export class Game {
       return;
     }
 
+    if (this.gameState === 'charSelect') {
+      this.renderCharSelect();
+      ctx.restore();
+      return;
+    }
+
     // Clear
     ctx.fillStyle = COL.bg;
     ctx.fillRect(0, 0, this.width, this.height);
@@ -979,8 +1009,129 @@ export class Game {
     this.frameCount++;
 
     if (this.keysJustPressed.has('Space')) {
+      this.gameState = 'charSelect';
+    }
+  }
+
+  renderCharSelect() {
+    const ctx = this.ctx;
+    ctx.fillStyle = COL.bg;
+    ctx.fillRect(0, 0, this.width, this.height);
+
+    // Title
+    ctx.fillStyle = '#ddaa33';
+    ctx.font = '16px "Press Start 2P", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('ESCOLHA SEU GATO', this.width / 2, 50);
+
+    const cols = 3;
+    const cardW = 200;
+    const cardH = 160;
+    const gapX = 30;
+    const gapY = 20;
+    const startX = (this.width - (cols * cardW + (cols - 1) * gapX)) / 2;
+    const startY = 80;
+
+    for (let i = 0; i < CAT_SKINS.length; i++) {
+      const skin = CAT_SKINS[i];
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const cx = startX + col * (cardW + gapX);
+      const cy = startY + row * (cardH + gapY);
+
+      const selected = i === this.selectedCat;
+
+      // Card background
+      ctx.fillStyle = selected ? 'rgba(221,170,51,0.2)' : 'rgba(255,255,255,0.05)';
+      ctx.fillRect(cx, cy, cardW, cardH);
+
+      // Border
+      ctx.strokeStyle = selected ? '#ddaa33' : '#444444';
+      ctx.lineWidth = selected ? 3 : 1;
+      ctx.strokeRect(cx, cy, cardW, cardH);
+
+      // Draw cat preview with this skin's colors
+      const prevCat = COL.cat;
+      const prevLight = COL.catLight;
+      const prevDark = COL.catDark;
+      const prevEye = COL.catEye;
+      const prevNose = COL.catNose;
+      COL.cat = skin.body;
+      COL.catLight = skin.bodyLight;
+      COL.catDark = skin.bodyDark;
+      COL.catEye = skin.eye;
+      COL.catNose = skin.nose;
+
+      const catX = cx + cardW / 2 - 11;
+      const catY = cy + 30;
+      this.drawCatSprite(ctx, catX, catY, 1, false, Math.floor(this.frameCount / 10) % 4, false);
+
+      COL.cat = prevCat;
+      COL.catLight = prevLight;
+      COL.catDark = prevDark;
+      COL.catEye = prevEye;
+      COL.catNose = prevNose;
+
+      // Name
+      ctx.fillStyle = selected ? '#ddaa33' : '#aaaaaa';
+      ctx.font = '10px "Press Start 2P", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(skin.name, cx + cardW / 2, cy + 80);
+
+      // Description
+      ctx.fillStyle = '#777777';
+      ctx.font = '7px "Press Start 2P", monospace';
+      ctx.fillText(skin.description, cx + cardW / 2, cy + 100);
+
+      // Number key hint
+      ctx.fillStyle = selected ? '#ddaa33' : '#555555';
+      ctx.font = '8px "Press Start 2P", monospace';
+      ctx.fillText(`[${i + 1}]`, cx + cardW / 2, cy + cardH - 15);
+    }
+
+    // Instructions
+    if (Math.sin(this.frameCount * 0.05) > 0) {
+      ctx.fillStyle = '#ddaa33';
+      ctx.font = '9px "Press Start 2P", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('← → Escolher  |  ESPAÇO Confirmar', this.width / 2, this.height - 30);
+    }
+
+    this.frameCount++;
+
+    // Navigation
+    if (this.keysJustPressed.has('ArrowRight') || this.keysJustPressed.has('KeyD')) {
+      this.selectedCat = (this.selectedCat + 1) % CAT_SKINS.length;
+    }
+    if (this.keysJustPressed.has('ArrowLeft') || this.keysJustPressed.has('KeyA')) {
+      this.selectedCat = (this.selectedCat - 1 + CAT_SKINS.length) % CAT_SKINS.length;
+    }
+    if (this.keysJustPressed.has('ArrowDown') || this.keysJustPressed.has('KeyS')) {
+      this.selectedCat = Math.min(CAT_SKINS.length - 1, this.selectedCat + cols);
+    }
+    if (this.keysJustPressed.has('ArrowUp') || this.keysJustPressed.has('KeyW')) {
+      this.selectedCat = Math.max(0, this.selectedCat - cols);
+    }
+    // Number keys
+    for (let i = 0; i < CAT_SKINS.length; i++) {
+      if (this.keysJustPressed.has(`Digit${i + 1}`)) {
+        this.selectedCat = i;
+      }
+    }
+
+    if (this.keysJustPressed.has('Space') || this.keysJustPressed.has('Enter')) {
+      this.applyCatSkin();
       this.startGame();
     }
+  }
+
+  applyCatSkin() {
+    const skin = CAT_SKINS[this.selectedCat];
+    COL.cat = skin.body;
+    COL.catLight = skin.bodyLight;
+    COL.catDark = skin.bodyDark;
+    COL.catEye = skin.eye;
+    COL.catNose = skin.nose;
   }
 
   renderBackground() {
