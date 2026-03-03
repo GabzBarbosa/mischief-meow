@@ -156,6 +156,8 @@ export class Game {
   stealthMeter = 0; // 0 = hidden, 100 = fully exposed
   time = 0;
   frameCount = 0;
+  currentLevel = 1;
+  maxLevel = 2;
 
   private boundKeyDown: (e: KeyboardEvent) => void;
   private boundKeyUp: (e: KeyboardEvent) => void;
@@ -188,8 +190,9 @@ export class Game {
     cancelAnimationFrame(this.rafId);
   }
 
-  startGame() {
+  startGame(level = 1) {
     this.gameState = 'playing';
+    this.currentLevel = level;
     this.initLevel();
     this.lastTime = performance.now();
     this.loop();
@@ -205,6 +208,17 @@ export class Game {
     this.noises = [];
     this.particles = [];
     this.collectedKeys = 0;
+
+    if (this.currentLevel === 2) {
+      this.initLevel2();
+    } else {
+      this.initLevel1();
+    }
+
+    this.totalFish = this.collectibles.filter(c => c.type === 'fish').length;
+  }
+
+  initLevel1() {
     this.levelWidth = 50 * TILE;
 
     // Player
@@ -255,23 +269,16 @@ export class Game {
 
     // Objects on surfaces
     this.objects = [
-      // Kitchen objects
       { x: 7 * TILE, y: 10 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 120, broken: false, breakable: true, color: COL.vase },
       { x: 9 * TILE, y: 10 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 80, broken: false, breakable: true, color: COL.cup },
       { x: 10 * TILE, y: 10 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 80, broken: false, breakable: true, color: COL.cup },
-      // High shelf objects
       { x: 8 * TILE, y: 7 * TILE - 16 + 8, w: 12, h: 12, type: 'plant', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: COL.plant },
-      // Table objects
       { x: 15 * TILE, y: 11 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 120, broken: false, breakable: true, color: COL.vase },
       { x: 17 * TILE, y: 11 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 80, broken: false, breakable: true, color: COL.cup },
-      // Bookshelf objects
       { x: 21 * TILE, y: 8 * TILE - 12, w: 14, h: 10, type: 'book', falling: false, vy: 0, grounded: true, noiseRadius: 60, broken: false, breakable: false, color: COL.book },
       { x: 21 * TILE, y: 10 * TILE - 12, w: 14, h: 10, type: 'book', falling: false, vy: 0, grounded: true, noiseRadius: 60, broken: false, breakable: false, color: COL.book },
-      // Desk objects
       { x: 27 * TILE, y: 10 * TILE - 18, w: 10, h: 16, type: 'lamp', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: COL.lamp },
-      // Side table
       { x: 40 * TILE, y: 11 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 120, broken: false, breakable: true, color: COL.vase },
-      // Cabinet
       { x: 44 * TILE, y: 9 * TILE - 12, w: 12, h: 12, type: 'plant', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: COL.plant },
     ];
 
@@ -287,8 +294,6 @@ export class Game {
       { x: 12 * TILE, y: 12 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
       { x: 30 * TILE, y: 9 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
     ];
-
-    this.totalFish = this.collectibles.filter(c => c.type === 'fish').length;
 
     // Exit door
     this.exit = { x: 47 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, locked: true };
@@ -310,6 +315,165 @@ export class Game {
         facing: -1, state: 'normal',
         stateTimer: 0, investigateX: 0,
         speed: 1.0, visionRange: 130, visionAngle: Math.PI / 3,
+      },
+    ];
+  }
+
+  initLevel2() {
+    this.levelWidth = 65 * TILE;
+
+    // Player starts with fewer lives
+    this.player = {
+      x: 3 * TILE, y: 11 * TILE,
+      vx: 0, vy: 0,
+      w: CAT_W, h: CAT_H,
+      grounded: false, crouching: false,
+      facing: 1, hidden: false,
+      lives: 7, invincible: 0,
+      animFrame: 0, animTimer: 0,
+      interactCooldown: 0,
+    };
+
+    // Rooftops & building layout - more vertical, more complex
+    this.platforms = [
+      // Ground floor
+      { x: 0, y: 13 * TILE, w: 65 * TILE, h: 2 * TILE },
+      // Left wall
+      { x: 0, y: 0, w: TILE, h: 15 * TILE },
+      // Right wall
+      { x: 64 * TILE, y: 0, w: TILE, h: 15 * TILE },
+      // Ceiling
+      { x: 0, y: 0, w: 65 * TILE, h: TILE },
+
+      // === COZINHA GRANDE (início) ===
+      // Balcão da cozinha
+      { x: 4 * TILE, y: 10 * TILE, w: 6 * TILE, h: TILE },
+      // Prateleira alta da cozinha
+      { x: 5 * TILE, y: 6 * TILE, w: 4 * TILE, h: TILE / 2 },
+      // Mesa de jantar
+      { x: 12 * TILE, y: 11 * TILE, w: 5 * TILE, h: TILE / 2 },
+
+      // === CORREDOR ESTREITO ===
+      // Prateleira do corredor (passagem apertada)
+      { x: 19 * TILE, y: 9 * TILE, w: 2 * TILE, h: TILE / 2 },
+      { x: 19 * TILE, y: 11 * TILE, w: 2 * TILE, h: TILE / 2 },
+
+      // === SALA DE ESTAR ===
+      // Estante grande (3 níveis)
+      { x: 24 * TILE, y: 5 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 24 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 24 * TILE, y: 9 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Sofá
+      { x: 29 * TILE, y: 11 * TILE, w: 5 * TILE, h: TILE },
+      // Mesa de centro
+      { x: 31 * TILE, y: 12 * TILE, w: 2 * TILE, h: TILE / 2 },
+
+      // === ESCRITÓRIO ===
+      // Mesa do escritório
+      { x: 37 * TILE, y: 10 * TILE, w: 5 * TILE, h: TILE / 2 },
+      // Prateleira alta do escritório
+      { x: 38 * TILE, y: 6 * TILE, w: 4 * TILE, h: TILE / 2 },
+      // Armário
+      { x: 37 * TILE, y: 8 * TILE, w: 2 * TILE, h: TILE },
+
+      // === ÁREA DE TELHADOS ===
+      // Plataformas escalonadas (telhados)
+      { x: 45 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 49 * TILE, y: 9 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 53 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 50 * TILE, y: 5 * TILE, w: 2 * TILE, h: TILE / 2 },
+      // Plataforma final elevada
+      { x: 57 * TILE, y: 8 * TILE, w: 4 * TILE, h: TILE / 2 },
+      // Caixas empilhadas
+      { x: 55 * TILE, y: 11 * TILE, w: 2 * TILE, h: TILE },
+      { x: 55 * TILE, y: 10 * TILE, w: 2 * TILE, h: TILE },
+    ];
+
+    // Mais objetos, incluindo novos em posições estratégicas
+    this.objects = [
+      // Cozinha
+      { x: 5 * TILE, y: 10 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 130, broken: false, breakable: true, color: COL.vase },
+      { x: 7 * TILE, y: 10 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 90, broken: false, breakable: true, color: COL.cup },
+      { x: 8 * TILE, y: 10 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 90, broken: false, breakable: true, color: COL.cup },
+      { x: 9 * TILE, y: 10 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 90, broken: false, breakable: true, color: COL.cup },
+      { x: 6 * TILE, y: 6 * TILE - 16 + 8, w: 12, h: 12, type: 'plant', falling: false, vy: 0, grounded: true, noiseRadius: 110, broken: false, breakable: true, color: COL.plant },
+      // Mesa de jantar
+      { x: 13 * TILE, y: 11 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 130, broken: false, breakable: true, color: COL.vase },
+      { x: 15 * TILE, y: 11 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 90, broken: false, breakable: true, color: COL.cup },
+      { x: 16 * TILE, y: 11 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 90, broken: false, breakable: true, color: COL.cup },
+      // Corredor
+      { x: 19 * TILE + 8, y: 9 * TILE - 12, w: 14, h: 10, type: 'book', falling: false, vy: 0, grounded: true, noiseRadius: 70, broken: false, breakable: false, color: COL.book },
+      // Estante da sala (3 níveis de objetos!)
+      { x: 25 * TILE, y: 5 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 130, broken: false, breakable: true, color: COL.vase },
+      { x: 25 * TILE, y: 7 * TILE - 12, w: 14, h: 10, type: 'book', falling: false, vy: 0, grounded: true, noiseRadius: 70, broken: false, breakable: false, color: COL.book },
+      { x: 25 * TILE, y: 9 * TILE - 12, w: 12, h: 12, type: 'plant', falling: false, vy: 0, grounded: true, noiseRadius: 110, broken: false, breakable: true, color: COL.plant },
+      // Escritório
+      { x: 38 * TILE, y: 10 * TILE - 18, w: 10, h: 16, type: 'lamp', falling: false, vy: 0, grounded: true, noiseRadius: 110, broken: false, breakable: true, color: COL.lamp },
+      { x: 40 * TILE, y: 10 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 90, broken: false, breakable: true, color: COL.cup },
+      { x: 39 * TILE, y: 6 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 130, broken: false, breakable: true, color: COL.vase },
+      { x: 41 * TILE, y: 6 * TILE - 12, w: 14, h: 10, type: 'book', falling: false, vy: 0, grounded: true, noiseRadius: 70, broken: false, breakable: false, color: COL.book },
+      // Telhados
+      { x: 46 * TILE, y: 11 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 130, broken: false, breakable: true, color: COL.vase },
+      { x: 50 * TILE, y: 9 * TILE - 12, w: 12, h: 12, type: 'plant', falling: false, vy: 0, grounded: true, noiseRadius: 110, broken: false, breakable: true, color: COL.plant },
+    ];
+
+    // Mais coletáveis espalhados
+    this.collectibles = [
+      { x: 6 * TILE, y: 9 * TILE, type: 'fish', collected: false, animTimer: 0 },
+      { x: 14 * TILE, y: 10 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 20 * TILE, y: 8 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 26 * TILE, y: 4 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 30 * TILE, y: 10 * TILE, type: 'yarn', collected: false, animTimer: Math.random() * 100 },
+      { x: 35 * TILE, y: 12 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 39 * TILE, y: 5 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 42 * TILE, y: 9 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 50 * TILE, y: 4 * TILE, type: 'yarn', collected: false, animTimer: Math.random() * 100 },
+      { x: 54 * TILE, y: 6 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 57 * TILE, y: 7 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      // Chave escondida no topo dos telhados
+      { x: 51 * TILE, y: 4 * TILE, type: 'key', collected: false, animTimer: Math.random() * 100 },
+    ];
+
+    // Exit door - no final, após área de telhados
+    this.exit = { x: 60 * TILE, y: 5 * TILE, w: TILE * 1.5, h: 3 * TILE, locked: true };
+
+    // 4 inimigos! Mais rápidos e com visão maior
+    this.enemies = [
+      // Patrulha cozinha - rápido
+      {
+        x: 10 * TILE, y: 13 * TILE - 40,
+        w: 18, h: 38,
+        patrolA: 4 * TILE, patrolB: 18 * TILE,
+        facing: 1, state: 'normal',
+        stateTimer: 0, investigateX: 0,
+        speed: 1.6, visionRange: 180, visionAngle: Math.PI / 2.5,
+      },
+      // Patrulha sala - campo de visão largo
+      {
+        x: 30 * TILE, y: 13 * TILE - 40,
+        w: 18, h: 38,
+        patrolA: 23 * TILE, patrolB: 36 * TILE,
+        facing: -1, state: 'normal',
+        stateTimer: 0, investigateX: 0,
+        speed: 1.4, visionRange: 200, visionAngle: Math.PI / 2,
+      },
+      // Patrulha escritório - muito rápido
+      {
+        x: 40 * TILE, y: 13 * TILE - 40,
+        w: 18, h: 38,
+        patrolA: 36 * TILE, patrolB: 48 * TILE,
+        facing: 1, state: 'normal',
+        stateTimer: 0, investigateX: 0,
+        speed: 1.8, visionRange: 170, visionAngle: Math.PI / 3,
+      },
+      // Patrulha telhados - o mais perigoso
+      {
+        x: 55 * TILE, y: 13 * TILE - 40,
+        w: 18, h: 38,
+        patrolA: 48 * TILE, patrolB: 62 * TILE,
+        facing: -1, state: 'normal',
+        stateTimer: 0, investigateX: 0,
+        speed: 2.0, visionRange: 220, visionAngle: Math.PI / 2,
       },
     ];
   }
@@ -1257,7 +1421,7 @@ export class Game {
     // Chaos meter
     ctx.fillStyle = '#aaaaaa';
     ctx.textAlign = 'center';
-    ctx.fillText(`CAOS: ${this.chaos}`, this.width / 2, 14);
+    ctx.fillText(`FASE ${this.currentLevel} | CAOS: ${this.chaos}`, this.width / 2, 14);
 
     // Stealth indicator
     const stealthColor = this.stealthMeter > 70 ? '#ff4444' : this.stealthMeter > 30 ? '#ffcc44' : '#44cc66';
@@ -1324,7 +1488,7 @@ export class Game {
     ctx.fillStyle = '#44cc66';
     ctx.font = '18px "Press Start 2P", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('FASE COMPLETA!', this.width / 2, this.height / 2 - 40);
+    ctx.fillText(`FASE ${this.currentLevel} COMPLETA!`, this.width / 2, this.height / 2 - 40);
 
     // Stars rating
     const stars = this.calculateStars();
@@ -1342,15 +1506,31 @@ export class Game {
       ctx.fillText('BÔNUS: Nunca foi visto! +50', this.width / 2, this.height / 2 + 70);
     }
 
+    const hasNextLevel = this.currentLevel < this.maxLevel;
+
     if (Math.sin(this.frameCount * 0.05) > 0) {
       ctx.fillStyle = '#ddaa33';
       ctx.font = '10px "Press Start 2P", monospace';
-      ctx.fillText('ESPAÇO para jogar de novo', this.width / 2, this.height / 2 + 100);
+      if (hasNextLevel) {
+        ctx.fillText('ESPAÇO para a próxima fase', this.width / 2, this.height / 2 + 100);
+      } else {
+        ctx.fillText('Você completou o jogo!', this.width / 2, this.height / 2 + 100);
+        ctx.fillStyle = '#888888';
+        ctx.font = '8px "Press Start 2P", monospace';
+        ctx.fillText('ESPAÇO para jogar de novo', this.width / 2, this.height / 2 + 120);
+      }
     }
 
     if (this.keysJustPressed.has('Space')) {
-      this.gameState = 'playing';
-      this.initLevel();
+      if (hasNextLevel) {
+        this.currentLevel++;
+        this.gameState = 'playing';
+        this.initLevel();
+      } else {
+        this.currentLevel = 1;
+        this.gameState = 'playing';
+        this.initLevel();
+      }
     }
   }
 
