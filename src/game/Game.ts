@@ -148,10 +148,13 @@ const COL = {
   star: '#ffffcc',
 };
 
+import { SFX } from './SFX';
+
 // --- MAIN GAME CLASS ---
 export class Game {
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
+  sfx = new SFX();
   width = 800;
   height = 480;
   keys = new Set<string>();
@@ -212,6 +215,7 @@ export class Game {
     window.removeEventListener('keydown', this.boundKeyDown);
     window.removeEventListener('keyup', this.boundKeyUp);
     cancelAnimationFrame(this.rafId);
+    this.sfx.destroy();
   }
 
   startGame(level = 1) {
@@ -747,6 +751,7 @@ export class Game {
     if (jump && p.grounded) {
       p.vy = JUMP_FORCE;
       p.grounded = false;
+      this.sfx.jump();
     }
 
     // Gravity
@@ -877,6 +882,7 @@ export class Game {
                 this.chaos += 10;
                 this.score += 5;
                 this.spawnBreakParticles(obj);
+                this.sfx.breakObject();
               }
             }
           }
@@ -894,6 +900,7 @@ export class Game {
           enemy.state = 'suspicious';
           enemy.stateTimer = 120;
           enemy.investigateX = noise.x;
+          this.sfx.suspicious();
         }
       }
 
@@ -903,6 +910,7 @@ export class Game {
           enemy.state = 'alert';
           enemy.stateTimer = 180;
           this.stealthMeter = Math.min(100, this.stealthMeter + 30);
+          this.sfx.alert();
         }
       }
 
@@ -992,6 +1000,8 @@ export class Game {
     p.invincible = 90;
     this.seen = true;
     this.stealthMeter = 100;
+    this.sfx.hit();
+    if (p.lives <= 0) this.sfx.gameOver();
     // Knock back
     p.vy = -6;
     p.vx = -p.facing * 5;
@@ -1008,6 +1018,7 @@ export class Game {
         { x: c.x - 6, y: c.y - 6, w: 16, h: 16 }
       )) {
         c.collected = true;
+        this.sfx.collect(c.type);
         switch (c.type) {
           case 'fish': this.score += 10; break;
           case 'yarn': this.score += 15; break;
@@ -1056,6 +1067,7 @@ export class Game {
       this.exit
     )) {
       this.gameState = 'win';
+      this.sfx.win();
     }
   }
 
