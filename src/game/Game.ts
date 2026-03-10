@@ -1720,6 +1720,96 @@ export class Game {
 
     if (this.keysJustPressed.has('Space') || this.keysJustPressed.has('Enter')) {
       this.applyCatSkin();
+      this.gameState = 'modeSelect';
+    }
+  }
+
+  renderModeSelect() {
+    const ctx = this.ctx;
+    ctx.fillStyle = COL.bg;
+    ctx.fillRect(0, 0, this.width, this.height);
+
+    // Stars
+    for (let i = 0; i < 20; i++) {
+      const sx = (i * 137 + 50) % this.width;
+      const sy = (i * 97 + 30) % (this.height * 0.4);
+      if (Math.sin(this.frameCount * 0.02 + i) > 0.7) continue;
+      ctx.fillStyle = COL.star;
+      ctx.fillRect(sx, sy, 2, 2);
+    }
+
+    ctx.fillStyle = '#ddaa33';
+    ctx.font = '16px "Press Start 2P", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('ESCOLHA O MODO', this.width / 2, 60);
+
+    // Normal mode card
+    const cardW = 300;
+    const cardH = 200;
+    const gap = 40;
+    const startX = (this.width - (2 * cardW + gap)) / 2;
+    const cy = 100;
+
+    const modes = [
+      { name: 'NORMAL', desc: 'Seja furtivo e cause caos!', subDesc: 'Humanos patrulham a casa', color: '#4488cc', icon: '🏠' },
+      { name: 'ZUMBI', desc: 'Sobreviva ao apocalipse!', subDesc: 'Esconda-se dos zumbis', color: '#44aa44', icon: '🧟' },
+    ];
+
+    const selectedMode = this.gameMode === 'zombie' ? 1 : 0;
+
+    modes.forEach((mode, i) => {
+      const mx = startX + i * (cardW + gap);
+      const selected = i === selectedMode;
+
+      ctx.fillStyle = selected ? `${mode.color}33` : 'rgba(255,255,255,0.05)';
+      ctx.fillRect(mx, cy, cardW, cardH);
+      ctx.strokeStyle = selected ? mode.color : '#444444';
+      ctx.lineWidth = selected ? 3 : 1;
+      ctx.strokeRect(mx, cy, cardW, cardH);
+
+      ctx.font = '28px "Press Start 2P", monospace';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(mode.icon, mx + cardW / 2, cy + 50);
+
+      ctx.fillStyle = selected ? mode.color : '#aaaaaa';
+      ctx.font = '12px "Press Start 2P", monospace';
+      ctx.fillText(mode.name, mx + cardW / 2, cy + 90);
+
+      ctx.fillStyle = '#888888';
+      ctx.font = '7px "Press Start 2P", monospace';
+      ctx.fillText(mode.desc, mx + cardW / 2, cy + 120);
+      ctx.fillText(mode.subDesc, mx + cardW / 2, cy + 140);
+
+      if (i === 1) {
+        ctx.fillStyle = '#66aa66';
+        ctx.font = '6px "Press Start 2P", monospace';
+        ctx.fillText('E = Esconder em objetos', mx + cardW / 2, cy + 165);
+        ctx.fillText('Camas, armários, baldes...', mx + cardW / 2, cy + 180);
+      }
+
+      ctx.fillStyle = selected ? mode.color : '#555555';
+      ctx.font = '8px "Press Start 2P", monospace';
+      ctx.fillText(`[${i + 1}]`, mx + cardW / 2, cy + cardH - 10);
+    });
+
+    if (Math.sin(this.frameCount * 0.05) > 0) {
+      ctx.fillStyle = '#ddaa33';
+      ctx.font = '9px "Press Start 2P", monospace';
+      ctx.fillText('← → Escolher  |  ESPAÇO Confirmar', this.width / 2, this.height - 30);
+    }
+
+    this.frameCount++;
+
+    if (this.keysJustPressed.has('ArrowRight') || this.keysJustPressed.has('KeyD')) {
+      this.gameMode = 'zombie';
+    }
+    if (this.keysJustPressed.has('ArrowLeft') || this.keysJustPressed.has('KeyA')) {
+      this.gameMode = 'normal';
+    }
+    if (this.keysJustPressed.has('Digit1')) this.gameMode = 'normal';
+    if (this.keysJustPressed.has('Digit2')) this.gameMode = 'zombie';
+
+    if (this.keysJustPressed.has('Space') || this.keysJustPressed.has('Enter')) {
       this.startGame();
     }
   }
