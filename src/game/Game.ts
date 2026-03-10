@@ -248,13 +248,18 @@ export class Game {
     this.noises = [];
     this.particles = [];
     this.collectedKeys = 0;
+    this.hidingSpots = [];
+    this.playerInSpot = null;
+    this.hideTimer = 0;
 
-    if (this.currentLevel === 3) {
-      this.initLevel3();
-    } else if (this.currentLevel === 2) {
-      this.initLevel2();
+    if (this.gameMode === 'zombie') {
+      if (this.currentLevel === 3) this.initZombie3();
+      else if (this.currentLevel === 2) this.initZombie2();
+      else this.initZombie1();
     } else {
-      this.initLevel1();
+      if (this.currentLevel === 3) this.initLevel3();
+      else if (this.currentLevel === 2) this.initLevel2();
+      else this.initLevel1();
     }
 
     this.totalFish = this.collectibles.filter(c => c.type === 'fish').length;
