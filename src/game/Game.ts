@@ -1515,6 +1515,12 @@ export class Game {
       return;
     }
 
+    if (this.gameState === 'modeSelect') {
+      this.renderModeSelect();
+      ctx.restore();
+      return;
+    }
+
     // Clear
     ctx.fillStyle = COL.bg;
     ctx.fillRect(0, 0, this.width, this.height);
