@@ -54,6 +54,14 @@ interface Collectible {
   animTimer: number;
 }
 
+interface HidingSpot {
+  x: number; y: number;
+  w: number; h: number;
+  type: 'bed' | 'wardrobe' | 'bucket' | 'box' | 'dumpster' | 'table';
+  occupied: boolean;
+  color: string;
+}
+
 interface Noise {
   x: number; y: number;
   radius: number;
@@ -174,7 +182,7 @@ export class Game {
   totalFish = 0;
   collectedKeys = 0;
   seen = false;
-  gameState: 'title' | 'charSelect' | 'playing' | 'gameover' | 'win' = 'title';
+  gameState: 'title' | 'charSelect' | 'modeSelect' | 'playing' | 'gameover' | 'win' = 'title';
   camera = { x: 0 };
   levelWidth = 1600;
   stealthMeter = 0;
@@ -183,6 +191,10 @@ export class Game {
   currentLevel = 1;
   maxLevel = 3;
   selectedCat = 0;
+  gameMode: 'normal' | 'zombie' = 'normal';
+  hidingSpots: HidingSpot[] = [];
+  playerInSpot: HidingSpot | null = null;
+  hideTimer = 0;
 
 
 
@@ -236,13 +248,18 @@ export class Game {
     this.noises = [];
     this.particles = [];
     this.collectedKeys = 0;
+    this.hidingSpots = [];
+    this.playerInSpot = null;
+    this.hideTimer = 0;
 
-    if (this.currentLevel === 3) {
-      this.initLevel3();
-    } else if (this.currentLevel === 2) {
-      this.initLevel2();
+    if (this.gameMode === 'zombie') {
+      if (this.currentLevel === 3) this.initZombie3();
+      else if (this.currentLevel === 2) this.initZombie2();
+      else this.initZombie1();
     } else {
-      this.initLevel1();
+      if (this.currentLevel === 3) this.initLevel3();
+      else if (this.currentLevel === 2) this.initLevel2();
+      else this.initLevel1();
     }
 
     this.totalFish = this.collectibles.filter(c => c.type === 'fish').length;
@@ -690,6 +707,342 @@ export class Game {
     ];
   }
 
+  // ==================
+  // ZOMBIE MODE LEVELS
+  // ==================
+
+  initZombie1() {
+    this.levelWidth = 55 * TILE;
+    this.maxLevel = 3;
+
+    this.player = {
+      x: 3 * TILE, y: 11 * TILE,
+      vx: 0, vy: 0, w: CAT_W, h: CAT_H,
+      grounded: false, crouching: false,
+      facing: 1, hidden: false,
+      lives: 5, invincible: 0,
+      animFrame: 0, animTimer: 0,
+      interactCooldown: 0,
+    };
+
+    this.platforms = [
+      { x: 0, y: 13 * TILE, w: 55 * TILE, h: 2 * TILE },
+      { x: 0, y: 0, w: TILE, h: 15 * TILE },
+      { x: 54 * TILE, y: 0, w: TILE, h: 15 * TILE },
+      { x: 0, y: 0, w: 55 * TILE, h: TILE },
+      // Quarto 1
+      { x: 5 * TILE, y: 10 * TILE, w: 4 * TILE, h: TILE },
+      { x: 11 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Corredor
+      { x: 16 * TILE, y: 9 * TILE, w: 2 * TILE, h: TILE / 2 },
+      // Sala
+      { x: 20 * TILE, y: 10 * TILE, w: 6 * TILE, h: TILE },
+      { x: 21 * TILE, y: 7 * TILE, w: 4 * TILE, h: TILE / 2 },
+      // Cozinha
+      { x: 28 * TILE, y: 11 * TILE, w: 5 * TILE, h: TILE / 2 },
+      { x: 29 * TILE, y: 8 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Garagem
+      { x: 35 * TILE, y: 10 * TILE, w: 7 * TILE, h: TILE },
+      { x: 36 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Saída
+      { x: 44 * TILE, y: 11 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 49 * TILE, y: 9 * TILE, w: 3 * TILE, h: TILE / 2 },
+    ];
+
+    this.hidingSpots = [
+      { x: 6 * TILE, y: 11 * TILE, w: 3 * TILE, h: 2 * TILE, type: 'bed', occupied: false, color: '#665544' },
+      { x: 12 * TILE, y: 9 * TILE, w: TILE * 1.5, h: 4 * TILE, type: 'wardrobe', occupied: false, color: '#554433' },
+      { x: 17 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#777788' },
+      { x: 22 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'table', occupied: false, color: '#665533' },
+      { x: 25 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#443322' },
+      { x: 30 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#888899' },
+      { x: 37 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'box', occupied: false, color: '#887755' },
+      { x: 40 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'dumpster', occupied: false, color: '#446644' },
+      { x: 45 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#777788' },
+      { x: 50 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#554433' },
+    ];
+
+    this.objects = [
+      { x: 7 * TILE, y: 10 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 120, broken: false, breakable: true, color: COL.vase },
+      { x: 21 * TILE, y: 10 * TILE - 18, w: 10, h: 16, type: 'lamp', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: COL.lamp },
+      { x: 29 * TILE, y: 11 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 80, broken: false, breakable: true, color: COL.cup },
+      { x: 36 * TILE, y: 10 * TILE - 12, w: 12, h: 12, type: 'plant', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: COL.plant },
+    ];
+
+    this.collectibles = [
+      { x: 8 * TILE, y: 9 * TILE, type: 'fish', collected: false, animTimer: 0 },
+      { x: 16 * TILE, y: 8 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 23 * TILE, y: 6 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 31 * TILE, y: 7 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 38 * TILE, y: 6 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 44 * TILE, y: 10 * TILE, type: 'yarn', collected: false, animTimer: Math.random() * 100 },
+      { x: 49 * TILE, y: 8 * TILE, type: 'key', collected: false, animTimer: Math.random() * 100 },
+    ];
+
+    this.exit = { x: 52 * TILE, y: 6 * TILE, w: TILE * 1.5, h: 3 * TILE, locked: true };
+
+    this.enemies = [
+      {
+        x: 14 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 5 * TILE, patrolB: 20 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 0.8, visionRange: 180, visionAngle: Math.PI / 2.5,
+      },
+      {
+        x: 32 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 20 * TILE, patrolB: 42 * TILE,
+        facing: -1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 0.7, visionRange: 200, visionAngle: Math.PI / 2,
+      },
+      {
+        x: 48 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 42 * TILE, patrolB: 53 * TILE,
+        facing: -1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.0, visionRange: 160, visionAngle: Math.PI / 3,
+      },
+    ];
+  }
+
+  initZombie2() {
+    this.levelWidth = 65 * TILE;
+
+    this.player = {
+      x: 3 * TILE, y: 11 * TILE,
+      vx: 0, vy: 0, w: CAT_W, h: CAT_H,
+      grounded: false, crouching: false,
+      facing: 1, hidden: false,
+      lives: 4, invincible: 0,
+      animFrame: 0, animTimer: 0,
+      interactCooldown: 0,
+    };
+
+    this.platforms = [
+      { x: 0, y: 13 * TILE, w: 65 * TILE, h: 2 * TILE },
+      { x: 0, y: 0, w: TILE, h: 15 * TILE },
+      { x: 64 * TILE, y: 0, w: TILE, h: 15 * TILE },
+      { x: 0, y: 0, w: 65 * TILE, h: TILE },
+      // Hospital abandonado - Recepção
+      { x: 4 * TILE, y: 10 * TILE, w: 5 * TILE, h: TILE },
+      { x: 5 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Corredor hospitalar
+      { x: 11 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 15 * TILE, y: 9 * TILE, w: 2 * TILE, h: TILE / 2 },
+      // Enfermaria
+      { x: 19 * TILE, y: 10 * TILE, w: 7 * TILE, h: TILE },
+      { x: 20 * TILE, y: 7 * TILE, w: 5 * TILE, h: TILE / 2 },
+      { x: 19 * TILE, y: 4 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Laboratório
+      { x: 28 * TILE, y: 11 * TILE, w: 6 * TILE, h: TILE / 2 },
+      { x: 29 * TILE, y: 8 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 30 * TILE, y: 5 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Porão
+      { x: 36 * TILE, y: 10 * TILE, w: 5 * TILE, h: TILE },
+      { x: 37 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Estacionamento
+      { x: 43 * TILE, y: 11 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 48 * TILE, y: 9 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 52 * TILE, y: 10 * TILE, w: 4 * TILE, h: TILE },
+      // Telhado do hospital
+      { x: 57 * TILE, y: 8 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 58 * TILE, y: 5 * TILE, w: 3 * TILE, h: TILE / 2 },
+    ];
+
+    this.hidingSpots = [
+      { x: 5 * TILE, y: 11 * TILE, w: 3 * TILE, h: 2 * TILE, type: 'bed', occupied: false, color: '#556655' },
+      { x: 8 * TILE, y: 9 * TILE, w: TILE * 1.5, h: 4 * TILE, type: 'wardrobe', occupied: false, color: '#445544' },
+      { x: 12 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#778877' },
+      { x: 20 * TILE, y: 11 * TILE, w: 3 * TILE, h: 2 * TILE, type: 'bed', occupied: false, color: '#556655' },
+      { x: 24 * TILE, y: 11 * TILE, w: 3 * TILE, h: 2 * TILE, type: 'bed', occupied: false, color: '#556655' },
+      { x: 23 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#445544' },
+      { x: 29 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#778877' },
+      { x: 33 * TILE, y: 12 * TILE, w: 2 * TILE, h: TILE, type: 'box', occupied: false, color: '#887755' },
+      { x: 37 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'dumpster', occupied: false, color: '#446644' },
+      { x: 40 * TILE, y: 11 * TILE, w: TILE * 1.5, h: 2 * TILE, type: 'box', occupied: false, color: '#776655' },
+      { x: 44 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#778877' },
+      { x: 48 * TILE, y: 10 * TILE, w: 2 * TILE, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#445544' },
+      { x: 53 * TILE, y: 11 * TILE, w: 3 * TILE, h: 2 * TILE, type: 'bed', occupied: false, color: '#556655' },
+      { x: 58 * TILE, y: 9 * TILE, w: 2 * TILE, h: 4 * TILE, type: 'dumpster', occupied: false, color: '#446644' },
+    ];
+
+    this.objects = [
+      { x: 6 * TILE, y: 10 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 130, broken: false, breakable: true, color: COL.vase },
+      { x: 21 * TILE, y: 10 * TILE - 18, w: 10, h: 16, type: 'lamp', falling: false, vy: 0, grounded: true, noiseRadius: 110, broken: false, breakable: true, color: COL.lamp },
+      { x: 30 * TILE, y: 11 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 90, broken: false, breakable: true, color: COL.cup },
+      { x: 38 * TILE, y: 10 * TILE - 12, w: 12, h: 12, type: 'plant', falling: false, vy: 0, grounded: true, noiseRadius: 110, broken: false, breakable: true, color: COL.plant },
+      { x: 53 * TILE, y: 10 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 130, broken: false, breakable: true, color: COL.vase },
+    ];
+
+    this.collectibles = [
+      { x: 6 * TILE, y: 6 * TILE, type: 'fish', collected: false, animTimer: 0 },
+      { x: 15 * TILE, y: 8 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 21 * TILE, y: 3 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 25 * TILE, y: 6 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 31 * TILE, y: 4 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 38 * TILE, y: 6 * TILE, type: 'yarn', collected: false, animTimer: Math.random() * 100 },
+      { x: 44 * TILE, y: 10 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 49 * TILE, y: 8 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 54 * TILE, y: 9 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 59 * TILE, y: 4 * TILE, type: 'key', collected: false, animTimer: Math.random() * 100 },
+    ];
+
+    this.exit = { x: 61 * TILE, y: 2 * TILE, w: TILE * 1.5, h: 3 * TILE, locked: true };
+
+    this.enemies = [
+      {
+        x: 10 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 4 * TILE, patrolB: 18 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 0.9, visionRange: 190, visionAngle: Math.PI / 2,
+      },
+      {
+        x: 24 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 18 * TILE, patrolB: 35 * TILE,
+        facing: -1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.0, visionRange: 210, visionAngle: Math.PI / 2,
+      },
+      {
+        x: 38 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 35 * TILE, patrolB: 48 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.1, visionRange: 180, visionAngle: Math.PI / 2.5,
+      },
+      {
+        x: 52 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 46 * TILE, patrolB: 62 * TILE,
+        facing: -1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.2, visionRange: 220, visionAngle: Math.PI / 2,
+      },
+    ];
+  }
+
+  initZombie3() {
+    this.levelWidth = 75 * TILE;
+
+    this.player = {
+      x: 3 * TILE, y: 11 * TILE,
+      vx: 0, vy: 0, w: CAT_W, h: CAT_H,
+      grounded: false, crouching: false,
+      facing: 1, hidden: false,
+      lives: 3, invincible: 0,
+      animFrame: 0, animTimer: 0,
+      interactCooldown: 0,
+    };
+
+    this.platforms = [
+      { x: 0, y: 13 * TILE, w: 75 * TILE, h: 2 * TILE },
+      { x: 0, y: 0, w: TILE, h: 15 * TILE },
+      { x: 74 * TILE, y: 0, w: TILE, h: 15 * TILE },
+      { x: 0, y: 0, w: 75 * TILE, h: TILE },
+      // Metrô abandonado - Plataforma
+      { x: 4 * TILE, y: 10 * TILE, w: 6 * TILE, h: TILE },
+      { x: 5 * TILE, y: 7 * TILE, w: 4 * TILE, h: TILE / 2 },
+      // Túnel 1
+      { x: 12 * TILE, y: 11 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 14 * TILE, y: 8 * TILE, w: 2 * TILE, h: TILE / 2 },
+      // Estação 2
+      { x: 18 * TILE, y: 10 * TILE, w: 7 * TILE, h: TILE },
+      { x: 19 * TILE, y: 7 * TILE, w: 5 * TILE, h: TILE / 2 },
+      { x: 20 * TILE, y: 4 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Passarela
+      { x: 27 * TILE, y: 6 * TILE, w: 6 * TILE, h: TILE / 4 },
+      // Depósito
+      { x: 34 * TILE, y: 10 * TILE, w: 6 * TILE, h: TILE },
+      { x: 35 * TILE, y: 7 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 36 * TILE, y: 4 * TILE, w: 2 * TILE, h: TILE / 2 },
+      // Esgoto
+      { x: 42 * TILE, y: 11 * TILE, w: 5 * TILE, h: TILE / 2 },
+      { x: 43 * TILE, y: 8 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Sala do gerador
+      { x: 49 * TILE, y: 10 * TILE, w: 6 * TILE, h: TILE },
+      { x: 50 * TILE, y: 7 * TILE, w: 4 * TILE, h: TILE / 2 },
+      // Escada final
+      { x: 57 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 58 * TILE, y: 8 * TILE, w: 2 * TILE, h: TILE / 2 },
+      { x: 61 * TILE, y: 10 * TILE, w: 4 * TILE, h: TILE },
+      { x: 62 * TILE, y: 6 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Superfície
+      { x: 66 * TILE, y: 9 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 68 * TILE, y: 5 * TILE, w: 3 * TILE, h: TILE / 2 },
+    ];
+
+    this.hidingSpots = [
+      { x: 5 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'box', occupied: false, color: '#776655' },
+      { x: 9 * TILE, y: 11 * TILE, w: TILE, h: 2 * TILE, type: 'bucket', occupied: false, color: '#667766' },
+      { x: 13 * TILE, y: 12 * TILE, w: 2 * TILE, h: TILE, type: 'dumpster', occupied: false, color: '#446644' },
+      { x: 19 * TILE, y: 11 * TILE, w: 3 * TILE, h: 2 * TILE, type: 'bed', occupied: false, color: '#556655' },
+      { x: 23 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#445544' },
+      { x: 29 * TILE, y: 7 * TILE, w: 2 * TILE, h: 6 * TILE, type: 'wardrobe', occupied: false, color: '#554433' },
+      { x: 32 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#667766' },
+      { x: 35 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'dumpster', occupied: false, color: '#446644' },
+      { x: 38 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'box', occupied: false, color: '#776655' },
+      { x: 43 * TILE, y: 12 * TILE, w: 2 * TILE, h: TILE, type: 'dumpster', occupied: false, color: '#446644' },
+      { x: 46 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#667766' },
+      { x: 50 * TILE, y: 11 * TILE, w: 3 * TILE, h: 2 * TILE, type: 'bed', occupied: false, color: '#556655' },
+      { x: 54 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#445544' },
+      { x: 58 * TILE, y: 12 * TILE, w: 2 * TILE, h: TILE, type: 'box', occupied: false, color: '#776655' },
+      { x: 62 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'dumpster', occupied: false, color: '#446644' },
+      { x: 67 * TILE, y: 10 * TILE, w: 2 * TILE, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#554433' },
+    ];
+
+    this.objects = [
+      { x: 6 * TILE, y: 10 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 140, broken: false, breakable: true, color: COL.vase },
+      { x: 20 * TILE, y: 10 * TILE - 18, w: 10, h: 16, type: 'lamp', falling: false, vy: 0, grounded: true, noiseRadius: 120, broken: false, breakable: true, color: COL.lamp },
+      { x: 35 * TILE, y: 10 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: COL.cup },
+      { x: 37 * TILE, y: 10 * TILE - 12, w: 12, h: 12, type: 'plant', falling: false, vy: 0, grounded: true, noiseRadius: 120, broken: false, breakable: true, color: COL.plant },
+      { x: 50 * TILE, y: 10 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 140, broken: false, breakable: true, color: COL.vase },
+      { x: 62 * TILE, y: 10 * TILE - 18, w: 10, h: 16, type: 'lamp', falling: false, vy: 0, grounded: true, noiseRadius: 120, broken: false, breakable: true, color: COL.lamp },
+    ];
+
+    this.collectibles = [
+      { x: 7 * TILE, y: 6 * TILE, type: 'fish', collected: false, animTimer: 0 },
+      { x: 14 * TILE, y: 7 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 21 * TILE, y: 3 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 28 * TILE, y: 5 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 36 * TILE, y: 3 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 43 * TILE, y: 7 * TILE, type: 'yarn', collected: false, animTimer: Math.random() * 100 },
+      { x: 51 * TILE, y: 6 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 57 * TILE, y: 10 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 63 * TILE, y: 5 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 69 * TILE, y: 4 * TILE, type: 'key', collected: false, animTimer: Math.random() * 100 },
+      { x: 66 * TILE, y: 8 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+    ];
+
+    this.exit = { x: 71 * TILE, y: 2 * TILE, w: TILE * 1.5, h: 3 * TILE, locked: true };
+
+    this.enemies = [
+      {
+        x: 8 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 3 * TILE, patrolB: 16 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.0, visionRange: 200, visionAngle: Math.PI / 2,
+      },
+      {
+        x: 22 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 17 * TILE, patrolB: 33 * TILE,
+        facing: -1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.2, visionRange: 220, visionAngle: Math.PI / 2,
+      },
+      {
+        x: 38 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 33 * TILE, patrolB: 48 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.3, visionRange: 200, visionAngle: Math.PI / 2.5,
+      },
+      {
+        x: 52 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 48 * TILE, patrolB: 60 * TILE,
+        facing: -1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.4, visionRange: 230, visionAngle: Math.PI / 2,
+      },
+      {
+        x: 65 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 58 * TILE, patrolB: 72 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.5, visionRange: 250, visionAngle: Math.PI / 2,
+      },
+    ];
+  }
+
   loop = () => {
     const now = performance.now();
     const dt = Math.min((now - this.lastTime) / 16.667, 3); // normalize to ~60fps
@@ -786,7 +1139,50 @@ export class Game {
       this.interactWithObjects();
     }
 
-    // Check hiding
+    // Hide timer
+    if (this.hideTimer > 0) this.hideTimer -= dt;
+
+    // Zombie mode: hide in spots with E key
+    if (this.gameMode === 'zombie' && interact && this.hideTimer <= 0) {
+      if (this.playerInSpot) {
+        // Exit hiding spot
+        this.playerInSpot.occupied = false;
+        this.playerInSpot = null;
+        p.hidden = false;
+        this.hideTimer = 20;
+      } else {
+        // Try to enter a hiding spot
+        for (const spot of this.hidingSpots) {
+          const spotCenter = { x: spot.x + spot.w / 2, y: spot.y + spot.h / 2 };
+          const playerCenter = { x: p.x + p.w / 2, y: p.y + p.h / 2 };
+          const dist = Math.sqrt((spotCenter.x - playerCenter.x) ** 2 + (spotCenter.y - playerCenter.y) ** 2);
+          if (dist < 50) {
+            this.playerInSpot = spot;
+            spot.occupied = true;
+            p.hidden = true;
+            p.x = spot.x + spot.w / 2 - p.w / 2;
+            p.y = spot.y + spot.h - p.h;
+            p.vx = 0;
+            p.vy = 0;
+            this.hideTimer = 20;
+            this.sfx.meow();
+            break;
+          }
+        }
+      }
+    }
+
+    // If hiding in a spot, lock movement
+    if (this.playerInSpot) {
+      p.vx = 0;
+      p.vy = 0;
+      p.hidden = true;
+      p.x = this.playerInSpot.x + this.playerInSpot.w / 2 - p.w / 2;
+      p.y = this.playerInSpot.y + this.playerInSpot.h - p.h;
+      return; // Skip all other movement
+    }
+
+    // Check hiding (normal mode)
     p.hidden = p.crouching && this.isNearFurniture(p);
 
     // Stealth meter decay
@@ -1119,8 +1515,14 @@ export class Game {
       return;
     }
 
+    if (this.gameState === 'modeSelect') {
+      this.renderModeSelect();
+      ctx.restore();
+      return;
+    }
+
     // Clear
-    ctx.fillStyle = COL.bg;
+    ctx.fillStyle = this.gameMode === 'zombie' ? '#0a1a0e' : COL.bg;
     ctx.fillRect(0, 0, this.width, this.height);
 
     ctx.save();
@@ -1128,6 +1530,7 @@ export class Game {
 
     this.renderBackground();
     this.renderPlatforms();
+    this.renderHidingSpots();
     this.renderExit();
     this.renderObjects();
     this.renderCollectibles();
@@ -1317,6 +1720,96 @@ export class Game {
 
     if (this.keysJustPressed.has('Space') || this.keysJustPressed.has('Enter')) {
       this.applyCatSkin();
+      this.gameState = 'modeSelect';
+    }
+  }
+
+  renderModeSelect() {
+    const ctx = this.ctx;
+    ctx.fillStyle = COL.bg;
+    ctx.fillRect(0, 0, this.width, this.height);
+
+    // Stars
+    for (let i = 0; i < 20; i++) {
+      const sx = (i * 137 + 50) % this.width;
+      const sy = (i * 97 + 30) % (this.height * 0.4);
+      if (Math.sin(this.frameCount * 0.02 + i) > 0.7) continue;
+      ctx.fillStyle = COL.star;
+      ctx.fillRect(sx, sy, 2, 2);
+    }
+
+    ctx.fillStyle = '#ddaa33';
+    ctx.font = '16px "Press Start 2P", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('ESCOLHA O MODO', this.width / 2, 60);
+
+    // Normal mode card
+    const cardW = 300;
+    const cardH = 200;
+    const gap = 40;
+    const startX = (this.width - (2 * cardW + gap)) / 2;
+    const cy = 100;
+
+    const modes = [
+      { name: 'NORMAL', desc: 'Seja furtivo e cause caos!', subDesc: 'Humanos patrulham a casa', color: '#4488cc', icon: '🏠' },
+      { name: 'ZUMBI', desc: 'Sobreviva ao apocalipse!', subDesc: 'Esconda-se dos zumbis', color: '#44aa44', icon: '🧟' },
+    ];
+
+    const selectedMode = this.gameMode === 'zombie' ? 1 : 0;
+
+    modes.forEach((mode, i) => {
+      const mx = startX + i * (cardW + gap);
+      const selected = i === selectedMode;
+
+      ctx.fillStyle = selected ? `${mode.color}33` : 'rgba(255,255,255,0.05)';
+      ctx.fillRect(mx, cy, cardW, cardH);
+      ctx.strokeStyle = selected ? mode.color : '#444444';
+      ctx.lineWidth = selected ? 3 : 1;
+      ctx.strokeRect(mx, cy, cardW, cardH);
+
+      ctx.font = '28px "Press Start 2P", monospace';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(mode.icon, mx + cardW / 2, cy + 50);
+
+      ctx.fillStyle = selected ? mode.color : '#aaaaaa';
+      ctx.font = '12px "Press Start 2P", monospace';
+      ctx.fillText(mode.name, mx + cardW / 2, cy + 90);
+
+      ctx.fillStyle = '#888888';
+      ctx.font = '7px "Press Start 2P", monospace';
+      ctx.fillText(mode.desc, mx + cardW / 2, cy + 120);
+      ctx.fillText(mode.subDesc, mx + cardW / 2, cy + 140);
+
+      if (i === 1) {
+        ctx.fillStyle = '#66aa66';
+        ctx.font = '6px "Press Start 2P", monospace';
+        ctx.fillText('E = Esconder em objetos', mx + cardW / 2, cy + 165);
+        ctx.fillText('Camas, armários, baldes...', mx + cardW / 2, cy + 180);
+      }
+
+      ctx.fillStyle = selected ? mode.color : '#555555';
+      ctx.font = '8px "Press Start 2P", monospace';
+      ctx.fillText(`[${i + 1}]`, mx + cardW / 2, cy + cardH - 10);
+    });
+
+    if (Math.sin(this.frameCount * 0.05) > 0) {
+      ctx.fillStyle = '#ddaa33';
+      ctx.font = '9px "Press Start 2P", monospace';
+      ctx.fillText('← → Escolher  |  ESPAÇO Confirmar', this.width / 2, this.height - 30);
+    }
+
+    this.frameCount++;
+
+    if (this.keysJustPressed.has('ArrowRight') || this.keysJustPressed.has('KeyD')) {
+      this.gameMode = 'zombie';
+    }
+    if (this.keysJustPressed.has('ArrowLeft') || this.keysJustPressed.has('KeyA')) {
+      this.gameMode = 'normal';
+    }
+    if (this.keysJustPressed.has('Digit1')) this.gameMode = 'normal';
+    if (this.keysJustPressed.has('Digit2')) this.gameMode = 'zombie';
+
+    if (this.keysJustPressed.has('Space') || this.keysJustPressed.has('Enter')) {
       this.startGame();
     }
   }
@@ -1374,33 +1867,170 @@ export class Game {
       if (plat.y >= 13 * TILE) {
         // Floor
         for (let tx = plat.x; tx < plat.x + plat.w; tx += TILE) {
-          ctx.fillStyle = COL.floor;
+          ctx.fillStyle = this.gameMode === 'zombie' ? '#2a3328' : COL.floor;
           ctx.fillRect(tx, plat.y, TILE, TILE);
-          ctx.fillStyle = COL.floorLight;
+          ctx.fillStyle = this.gameMode === 'zombie' ? '#3a4338' : COL.floorLight;
           ctx.fillRect(tx + 2, plat.y + 2, TILE - 4, 4);
           ctx.fillRect(tx + TILE / 2, plat.y + TILE / 2, TILE / 2 - 2, 4);
         }
-      } else if (plat.y === 0 || plat.x === 0 || plat.x >= 49 * TILE) {
+      } else if (plat.y === 0 || plat.x === 0 || plat.x >= (this.levelWidth - 2 * TILE)) {
         // Walls/ceiling
-        ctx.fillStyle = COL.wall;
+        ctx.fillStyle = this.gameMode === 'zombie' ? '#1a2218' : COL.wall;
         ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
-        ctx.fillStyle = COL.wallLight;
+        ctx.fillStyle = this.gameMode === 'zombie' ? '#253325' : COL.wallLight;
         ctx.fillRect(plat.x, plat.y, plat.w, 2);
       } else {
         // Furniture
-        ctx.fillStyle = COL.furniture;
+        ctx.fillStyle = this.gameMode === 'zombie' ? '#3a3528' : COL.furniture;
         ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
-        ctx.fillStyle = COL.furnitureLight;
+        ctx.fillStyle = this.gameMode === 'zombie' ? '#4a4538' : COL.furnitureLight;
         ctx.fillRect(plat.x, plat.y, plat.w, 3);
-        ctx.fillStyle = COL.furnitureDark;
+        ctx.fillStyle = this.gameMode === 'zombie' ? '#2a2518' : COL.furnitureDark;
         ctx.fillRect(plat.x, plat.y + plat.h - 2, plat.w, 2);
 
-        // Furniture legs (for tables/desks)
+        // Furniture legs
         if (plat.h <= TILE) {
-          ctx.fillStyle = COL.furnitureDark;
+          ctx.fillStyle = this.gameMode === 'zombie' ? '#2a2518' : COL.furnitureDark;
           ctx.fillRect(plat.x + 2, plat.y + plat.h, 4, 13 * TILE - plat.y - plat.h);
           ctx.fillRect(plat.x + plat.w - 6, plat.y + plat.h, 4, 13 * TILE - plat.y - plat.h);
         }
+      }
+    }
+  }
+
+  renderHidingSpots() {
+    const ctx = this.ctx;
+    const camX = this.camera.x;
+
+    for (const spot of this.hidingSpots) {
+      if (spot.x + spot.w < camX || spot.x > camX + this.width) continue;
+
+      const isNear = !this.playerInSpot && Math.sqrt(
+        (spot.x + spot.w/2 - this.player.x - this.player.w/2) ** 2 +
+        (spot.y + spot.h/2 - this.player.y - this.player.h/2) ** 2
+      ) < 50;
+
+      switch (spot.type) {
+        case 'bed':
+          // Bed frame
+          ctx.fillStyle = spot.color;
+          ctx.fillRect(spot.x, spot.y + spot.h - TILE, spot.w, TILE);
+          // Mattress
+          ctx.fillStyle = '#888877';
+          ctx.fillRect(spot.x + 2, spot.y + spot.h - TILE + 2, spot.w - 4, 8);
+          // Pillow
+          ctx.fillStyle = '#aaaaaa';
+          ctx.fillRect(spot.x + 4, spot.y + spot.h - TILE + 1, 12, 6);
+          // Blanket
+          ctx.fillStyle = '#667766';
+          ctx.fillRect(spot.x + 2, spot.y + spot.h - TILE + 10, spot.w - 4, TILE - 12);
+          // Legs
+          ctx.fillStyle = '#443322';
+          ctx.fillRect(spot.x + 2, spot.y + spot.h - TILE + TILE, 4, 13 * TILE - (spot.y + spot.h));
+          ctx.fillRect(spot.x + spot.w - 6, spot.y + spot.h - TILE + TILE, 4, 13 * TILE - (spot.y + spot.h));
+          // Space under bed hint
+          if (spot.occupied) {
+            ctx.fillStyle = 'rgba(68,204,102,0.15)';
+            ctx.fillRect(spot.x, spot.y + spot.h, spot.w, 13 * TILE - spot.y - spot.h);
+          }
+          break;
+
+        case 'wardrobe':
+          // Main body
+          ctx.fillStyle = spot.color;
+          ctx.fillRect(spot.x, spot.y, spot.w, spot.h);
+          // Door lines
+          ctx.fillStyle = '#333322';
+          ctx.fillRect(spot.x + spot.w / 2 - 1, spot.y + 2, 2, spot.h - 4);
+          // Handles
+          ctx.fillStyle = '#998877';
+          ctx.fillRect(spot.x + spot.w / 2 - 5, spot.y + spot.h / 2 - 2, 3, 4);
+          ctx.fillRect(spot.x + spot.w / 2 + 3, spot.y + spot.h / 2 - 2, 3, 4);
+          // Top
+          ctx.fillStyle = '#665544';
+          ctx.fillRect(spot.x - 2, spot.y - 3, spot.w + 4, 5);
+          if (spot.occupied) {
+            ctx.fillStyle = 'rgba(68,204,102,0.1)';
+            ctx.fillRect(spot.x, spot.y, spot.w, spot.h);
+          }
+          break;
+
+        case 'bucket':
+          // Bucket body
+          ctx.fillStyle = spot.color;
+          ctx.fillRect(spot.x + 3, spot.y + 4, spot.w - 6, spot.h - 4);
+          ctx.fillRect(spot.x + 1, spot.y + spot.h / 2, spot.w - 2, spot.h / 2);
+          // Rim
+          ctx.fillStyle = '#999999';
+          ctx.fillRect(spot.x, spot.y + 2, spot.w, 4);
+          // Handle
+          ctx.fillRect(spot.x + spot.w / 2 - 8, spot.y - 2, 2, 5);
+          ctx.fillRect(spot.x + spot.w / 2 + 6, spot.y - 2, 2, 5);
+          ctx.fillRect(spot.x + spot.w / 2 - 8, spot.y - 3, 16, 2);
+          if (spot.occupied) {
+            ctx.fillStyle = 'rgba(68,204,102,0.15)';
+            ctx.fillRect(spot.x, spot.y, spot.w, spot.h);
+          }
+          break;
+
+        case 'box':
+          ctx.fillStyle = spot.color;
+          ctx.fillRect(spot.x, spot.y, spot.w, spot.h);
+          // Flaps
+          ctx.fillStyle = '#665544';
+          ctx.fillRect(spot.x, spot.y, spot.w / 2 - 2, 5);
+          ctx.fillRect(spot.x + spot.w / 2 + 2, spot.y, spot.w / 2 - 2, 5);
+          // Tape
+          ctx.fillStyle = '#bbaa77';
+          ctx.fillRect(spot.x + spot.w / 2 - 3, spot.y + 5, 6, spot.h - 10);
+          if (spot.occupied) {
+            ctx.fillStyle = 'rgba(68,204,102,0.15)';
+            ctx.fillRect(spot.x, spot.y, spot.w, spot.h);
+          }
+          break;
+
+        case 'dumpster':
+          ctx.fillStyle = spot.color;
+          ctx.fillRect(spot.x, spot.y + 4, spot.w, spot.h - 4);
+          // Lid
+          ctx.fillStyle = '#335533';
+          ctx.fillRect(spot.x - 2, spot.y, spot.w + 4, 6);
+          // Label
+          ctx.fillStyle = '#223322';
+          ctx.fillRect(spot.x + 4, spot.y + spot.h / 2, spot.w - 8, 6);
+          if (spot.occupied) {
+            ctx.fillStyle = 'rgba(68,204,102,0.15)';
+            ctx.fillRect(spot.x, spot.y, spot.w, spot.h);
+          }
+          break;
+
+        case 'table':
+          // Table top
+          ctx.fillStyle = spot.color;
+          ctx.fillRect(spot.x, spot.y, spot.w, 6);
+          // Legs
+          ctx.fillStyle = '#554422';
+          ctx.fillRect(spot.x + 2, spot.y + 6, 4, spot.h - 6);
+          ctx.fillRect(spot.x + spot.w - 6, spot.y + 6, 4, spot.h - 6);
+          // Tablecloth
+          ctx.fillStyle = '#887766';
+          ctx.fillRect(spot.x - 3, spot.y, 5, 12);
+          ctx.fillRect(spot.x + spot.w - 2, spot.y, 5, 12);
+          if (spot.occupied) {
+            ctx.fillStyle = 'rgba(68,204,102,0.15)';
+            ctx.fillRect(spot.x + 4, spot.y + 6, spot.w - 8, spot.h - 6);
+          }
+          break;
+      }
+
+      // Proximity indicator
+      if (isNear) {
+        ctx.fillStyle = 'rgba(68,204,102,0.3)';
+        ctx.fillRect(spot.x - 2, spot.y - 2, spot.w + 4, spot.h + 4);
+        ctx.fillStyle = '#44cc66';
+        ctx.font = '7px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('[E] Esconder', spot.x + spot.w / 2, spot.y - 8);
       }
     }
   }
@@ -1563,32 +2193,14 @@ export class Game {
       // Vision cone
       this.renderVisionCone(ctx, enemy);
 
-      // Body
       const ex = Math.floor(enemy.x);
       const ey = Math.floor(enemy.y);
 
-      // Pants
-      ctx.fillStyle = COL.humanPants;
-      ctx.fillRect(ex + 2, ey + 24, 6, 14);
-      ctx.fillRect(ex + 10, ey + 24, 6, 14);
-
-      // Shirt
-      ctx.fillStyle = enemy.state === 'alert' ? '#884444' : enemy.state === 'suspicious' ? '#886644' : COL.humanShirt;
-      ctx.fillRect(ex, ey + 10, enemy.w, 16);
-      // Arms
-      ctx.fillRect(ex - 3, ey + 12, 3, 10);
-      ctx.fillRect(ex + enemy.w, ey + 12, 3, 10);
-
-      // Head
-      ctx.fillStyle = COL.human;
-      ctx.fillRect(ex + 3, ey, 12, 12);
-
-      // Eyes
-      ctx.fillStyle = '#fff';
-      const eyeX = enemy.facing === 1 ? ex + 9 : ex + 5;
-      ctx.fillRect(eyeX, ey + 4, 3, 3);
-      ctx.fillStyle = '#222';
-      ctx.fillRect(eyeX + (enemy.facing === 1 ? 1 : 0), ey + 5, 2, 2);
+      if (this.gameMode === 'zombie') {
+        this.renderZombie(ctx, ex, ey, enemy);
+      } else {
+        this.renderHuman(ctx, ex, ey, enemy);
+      }
 
       // State indicator
       if (enemy.state === 'suspicious') {
@@ -1603,6 +2215,78 @@ export class Game {
         ctx.fillText('!', ex + enemy.w / 2, ey - 6);
       }
     }
+  }
+
+  renderHuman(ctx: CanvasRenderingContext2D, ex: number, ey: number, enemy: Enemy) {
+    // Pants
+    ctx.fillStyle = COL.humanPants;
+    ctx.fillRect(ex + 2, ey + 24, 6, 14);
+    ctx.fillRect(ex + 10, ey + 24, 6, 14);
+    // Shirt
+    ctx.fillStyle = enemy.state === 'alert' ? '#884444' : enemy.state === 'suspicious' ? '#886644' : COL.humanShirt;
+    ctx.fillRect(ex, ey + 10, enemy.w, 16);
+    ctx.fillRect(ex - 3, ey + 12, 3, 10);
+    ctx.fillRect(ex + enemy.w, ey + 12, 3, 10);
+    // Head
+    ctx.fillStyle = COL.human;
+    ctx.fillRect(ex + 3, ey, 12, 12);
+    // Eyes
+    ctx.fillStyle = '#fff';
+    const eyeX = enemy.facing === 1 ? ex + 9 : ex + 5;
+    ctx.fillRect(eyeX, ey + 4, 3, 3);
+    ctx.fillStyle = '#222';
+    ctx.fillRect(eyeX + (enemy.facing === 1 ? 1 : 0), ey + 5, 2, 2);
+  }
+
+  renderZombie(ctx: CanvasRenderingContext2D, ex: number, ey: number, enemy: Enemy) {
+    const wobble = Math.sin(this.frameCount * 0.04 + ex) * 2;
+
+    // Legs (torn)
+    ctx.fillStyle = '#334433';
+    ctx.fillRect(ex + 2, ey + 24, 6, 14);
+    ctx.fillRect(ex + 10, ey + 24 + wobble, 6, 14);
+    // Torn edges
+    ctx.fillStyle = '#223322';
+    ctx.fillRect(ex + 2, ey + 36, 6, 2);
+    ctx.fillRect(ex + 12, ey + 36 + wobble, 4, 2);
+
+    // Body (tattered)
+    ctx.fillStyle = enemy.state === 'alert' ? '#553333' : enemy.state === 'suspicious' ? '#445533' : '#3a4a3a';
+    ctx.fillRect(ex, ey + 10 + wobble / 2, enemy.w, 16);
+    // Exposed ribs
+    ctx.fillStyle = '#556655';
+    ctx.fillRect(ex + 4, ey + 14 + wobble / 2, 10, 2);
+    ctx.fillRect(ex + 4, ey + 18 + wobble / 2, 8, 2);
+
+    // Arms (dangling)
+    ctx.fillStyle = '#4a5a3a';
+    ctx.fillRect(ex - 4, ey + 12 + wobble, 4, 14);
+    ctx.fillRect(ex + enemy.w, ey + 14, 4, 12);
+
+    // Head
+    ctx.fillStyle = '#5a6a4a';
+    ctx.fillRect(ex + 3, ey + wobble / 2, 12, 12);
+    // Rotting patches
+    ctx.fillStyle = '#3a4a2a';
+    ctx.fillRect(ex + 5, ey + 2 + wobble / 2, 4, 3);
+    ctx.fillRect(ex + 10, ey + 7 + wobble / 2, 3, 3);
+
+    // Eyes (glowing)
+    const glowIntensity = Math.sin(this.frameCount * 0.06) * 0.3 + 0.7;
+    ctx.fillStyle = enemy.state === 'alert' ? `rgba(255,60,40,${glowIntensity})` : `rgba(180,255,60,${glowIntensity})`;
+    const zEyeX = enemy.facing === 1 ? ex + 9 : ex + 5;
+    ctx.fillRect(zEyeX, ey + 4 + wobble / 2, 3, 3);
+    ctx.fillRect(zEyeX - 4, ey + 4 + wobble / 2, 3, 3);
+    // Eye glow
+    ctx.fillStyle = enemy.state === 'alert' ? 'rgba(255,60,40,0.15)' : 'rgba(180,255,60,0.1)';
+    ctx.fillRect(zEyeX - 6, ey + 2 + wobble / 2, 12, 8);
+
+    // Mouth (jagged)
+    ctx.fillStyle = '#222211';
+    ctx.fillRect(ex + 6, ey + 8 + wobble / 2, 6, 2);
+    ctx.fillStyle = '#aa3333';
+    ctx.fillRect(ex + 7, ey + 8 + wobble / 2, 1, 2);
+    ctx.fillRect(ex + 10, ey + 8 + wobble / 2, 1, 2);
   }
 
   renderVisionCone(ctx: CanvasRenderingContext2D, enemy: Enemy) {
@@ -1629,7 +2313,10 @@ export class Game {
     // Blinking when invincible
     if (p.invincible > 0 && Math.floor(p.invincible) % 6 < 3) return;
 
-    this.drawCatSprite(ctx, Math.floor(p.x), Math.floor(p.y), p.facing, p.crouching, p.animFrame, !p.grounded);
+    // Don't render cat when hiding inside something (except bed/table which are see-through)
+    if (this.playerInSpot && this.playerInSpot.type !== 'bed' && this.playerInSpot.type !== 'table') return;
+
+    this.drawCatSprite(ctx, Math.floor(p.x), Math.floor(p.y), p.facing, p.crouching || !!this.playerInSpot, p.animFrame, !p.grounded);
   }
 
   drawCatSprite(ctx: CanvasRenderingContext2D, x: number, y: number, facing: 1 | -1, crouching: boolean, frame: number, jumping: boolean) {
@@ -1768,7 +2455,8 @@ export class Game {
     // Chaos meter
     ctx.fillStyle = '#aaaaaa';
     ctx.textAlign = 'center';
-    ctx.fillText(`FASE ${this.currentLevel} | CAOS: ${this.chaos}`, this.width / 2, 14);
+    const modeLabel = this.gameMode === 'zombie' ? '🧟 ZUMBI' : '🏠 NORMAL';
+    ctx.fillText(`${modeLabel} FASE ${this.currentLevel} | CAOS: ${this.chaos}`, this.width / 2, 14);
 
     // Stealth indicator
     const stealthColor = this.stealthMeter > 70 ? '#ff4444' : this.stealthMeter > 30 ? '#ffcc44' : '#44cc66';
@@ -1798,6 +2486,12 @@ export class Game {
     if (this.player.hidden) {
       ctx.fillStyle = 'rgba(68,204,102,0.3)';
       ctx.fillRect(0, 32, this.width, 2);
+      if (this.playerInSpot) {
+        ctx.fillStyle = '#44cc66';
+        ctx.font = '7px "Press Start 2P", monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(`Escondido: ${this.playerInSpot.type.toUpperCase()} [E] Sair`, this.width - 8, 26);
+      }
     }
   }
 
