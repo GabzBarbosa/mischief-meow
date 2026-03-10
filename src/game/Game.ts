@@ -1530,6 +1530,7 @@ export class Game {
 
     this.renderBackground();
     this.renderPlatforms();
+    this.renderHidingSpots();
     this.renderExit();
     this.renderObjects();
     this.renderCollectibles();
