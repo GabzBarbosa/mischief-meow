@@ -182,7 +182,7 @@ export class Game {
   totalFish = 0;
   collectedKeys = 0;
   seen = false;
-  gameState: 'title' | 'charSelect' | 'playing' | 'gameover' | 'win' = 'title';
+  gameState: 'title' | 'charSelect' | 'modeSelect' | 'playing' | 'gameover' | 'win' = 'title';
   camera = { x: 0 };
   levelWidth = 1600;
   stealthMeter = 0;
@@ -191,6 +191,10 @@ export class Game {
   currentLevel = 1;
   maxLevel = 3;
   selectedCat = 0;
+  gameMode: 'normal' | 'zombie' = 'normal';
+  hidingSpots: HidingSpot[] = [];
+  playerInSpot: HidingSpot | null = null;
+  hideTimer = 0;
 
 
 
