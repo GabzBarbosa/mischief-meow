@@ -2193,32 +2193,14 @@ export class Game {
       // Vision cone
       this.renderVisionCone(ctx, enemy);
 
-      // Body
       const ex = Math.floor(enemy.x);
       const ey = Math.floor(enemy.y);
 
-      // Pants
-      ctx.fillStyle = COL.humanPants;
-      ctx.fillRect(ex + 2, ey + 24, 6, 14);
-      ctx.fillRect(ex + 10, ey + 24, 6, 14);
-
-      // Shirt
-      ctx.fillStyle = enemy.state === 'alert' ? '#884444' : enemy.state === 'suspicious' ? '#886644' : COL.humanShirt;
-      ctx.fillRect(ex, ey + 10, enemy.w, 16);
-      // Arms
-      ctx.fillRect(ex - 3, ey + 12, 3, 10);
-      ctx.fillRect(ex + enemy.w, ey + 12, 3, 10);
-
-      // Head
-      ctx.fillStyle = COL.human;
-      ctx.fillRect(ex + 3, ey, 12, 12);
-
-      // Eyes
-      ctx.fillStyle = '#fff';
-      const eyeX = enemy.facing === 1 ? ex + 9 : ex + 5;
-      ctx.fillRect(eyeX, ey + 4, 3, 3);
-      ctx.fillStyle = '#222';
-      ctx.fillRect(eyeX + (enemy.facing === 1 ? 1 : 0), ey + 5, 2, 2);
+      if (this.gameMode === 'zombie') {
+        this.renderZombie(ctx, ex, ey, enemy);
+      } else {
+        this.renderHuman(ctx, ex, ey, enemy);
+      }
 
       // State indicator
       if (enemy.state === 'suspicious') {
@@ -2233,6 +2215,78 @@ export class Game {
         ctx.fillText('!', ex + enemy.w / 2, ey - 6);
       }
     }
+  }
+
+  renderHuman(ctx: CanvasRenderingContext2D, ex: number, ey: number, enemy: Enemy) {
+    // Pants
+    ctx.fillStyle = COL.humanPants;
+    ctx.fillRect(ex + 2, ey + 24, 6, 14);
+    ctx.fillRect(ex + 10, ey + 24, 6, 14);
+    // Shirt
+    ctx.fillStyle = enemy.state === 'alert' ? '#884444' : enemy.state === 'suspicious' ? '#886644' : COL.humanShirt;
+    ctx.fillRect(ex, ey + 10, enemy.w, 16);
+    ctx.fillRect(ex - 3, ey + 12, 3, 10);
+    ctx.fillRect(ex + enemy.w, ey + 12, 3, 10);
+    // Head
+    ctx.fillStyle = COL.human;
+    ctx.fillRect(ex + 3, ey, 12, 12);
+    // Eyes
+    ctx.fillStyle = '#fff';
+    const eyeX = enemy.facing === 1 ? ex + 9 : ex + 5;
+    ctx.fillRect(eyeX, ey + 4, 3, 3);
+    ctx.fillStyle = '#222';
+    ctx.fillRect(eyeX + (enemy.facing === 1 ? 1 : 0), ey + 5, 2, 2);
+  }
+
+  renderZombie(ctx: CanvasRenderingContext2D, ex: number, ey: number, enemy: Enemy) {
+    const wobble = Math.sin(this.frameCount * 0.04 + ex) * 2;
+
+    // Legs (torn)
+    ctx.fillStyle = '#334433';
+    ctx.fillRect(ex + 2, ey + 24, 6, 14);
+    ctx.fillRect(ex + 10, ey + 24 + wobble, 6, 14);
+    // Torn edges
+    ctx.fillStyle = '#223322';
+    ctx.fillRect(ex + 2, ey + 36, 6, 2);
+    ctx.fillRect(ex + 12, ey + 36 + wobble, 4, 2);
+
+    // Body (tattered)
+    ctx.fillStyle = enemy.state === 'alert' ? '#553333' : enemy.state === 'suspicious' ? '#445533' : '#3a4a3a';
+    ctx.fillRect(ex, ey + 10 + wobble / 2, enemy.w, 16);
+    // Exposed ribs
+    ctx.fillStyle = '#556655';
+    ctx.fillRect(ex + 4, ey + 14 + wobble / 2, 10, 2);
+    ctx.fillRect(ex + 4, ey + 18 + wobble / 2, 8, 2);
+
+    // Arms (dangling)
+    ctx.fillStyle = '#4a5a3a';
+    ctx.fillRect(ex - 4, ey + 12 + wobble, 4, 14);
+    ctx.fillRect(ex + enemy.w, ey + 14, 4, 12);
+
+    // Head
+    ctx.fillStyle = '#5a6a4a';
+    ctx.fillRect(ex + 3, ey + wobble / 2, 12, 12);
+    // Rotting patches
+    ctx.fillStyle = '#3a4a2a';
+    ctx.fillRect(ex + 5, ey + 2 + wobble / 2, 4, 3);
+    ctx.fillRect(ex + 10, ey + 7 + wobble / 2, 3, 3);
+
+    // Eyes (glowing)
+    const glowIntensity = Math.sin(this.frameCount * 0.06) * 0.3 + 0.7;
+    ctx.fillStyle = enemy.state === 'alert' ? `rgba(255,60,40,${glowIntensity})` : `rgba(180,255,60,${glowIntensity})`;
+    const zEyeX = enemy.facing === 1 ? ex + 9 : ex + 5;
+    ctx.fillRect(zEyeX, ey + 4 + wobble / 2, 3, 3);
+    ctx.fillRect(zEyeX - 4, ey + 4 + wobble / 2, 3, 3);
+    // Eye glow
+    ctx.fillStyle = enemy.state === 'alert' ? 'rgba(255,60,40,0.15)' : 'rgba(180,255,60,0.1)';
+    ctx.fillRect(zEyeX - 6, ey + 2 + wobble / 2, 12, 8);
+
+    // Mouth (jagged)
+    ctx.fillStyle = '#222211';
+    ctx.fillRect(ex + 6, ey + 8 + wobble / 2, 6, 2);
+    ctx.fillStyle = '#aa3333';
+    ctx.fillRect(ex + 7, ey + 8 + wobble / 2, 1, 2);
+    ctx.fillRect(ex + 10, ey + 8 + wobble / 2, 1, 2);
   }
 
   renderVisionCone(ctx: CanvasRenderingContext2D, enemy: Enemy) {
