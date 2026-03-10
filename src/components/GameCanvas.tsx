@@ -21,7 +21,7 @@ const GameCanvas = () => {
     const loop = () => {
       game.render();
       game.frameCount++;
-      if (game.gameState === 'title' || game.gameState === 'charSelect') {
+      if (game.gameState === 'title' || game.gameState === 'charSelect' || game.gameState === 'modeSelect') {
         game.keysJustPressed.clear();
         requestAnimationFrame(loop);
       }

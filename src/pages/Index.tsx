@@ -9,7 +9,7 @@ const Index = () => {
         <span>ESPAÇO Pular</span>
         <span>↓ Agachar</span>
         <span>SHIFT Correr</span>
-        <span>E Empurrar</span>
+        <span>E Empurrar/Esconder</span>
       </div>
     </div>
   );
