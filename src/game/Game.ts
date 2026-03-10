@@ -2313,7 +2313,10 @@ export class Game {
     // Blinking when invincible
     if (p.invincible > 0 && Math.floor(p.invincible) % 6 < 3) return;
 
-    this.drawCatSprite(ctx, Math.floor(p.x), Math.floor(p.y), p.facing, p.crouching, p.animFrame, !p.grounded);
+    // Don't render cat when hiding inside something (except bed/table which are see-through)
+    if (this.playerInSpot && this.playerInSpot.type !== 'bed' && this.playerInSpot.type !== 'table') return;
+
+    this.drawCatSprite(ctx, Math.floor(p.x), Math.floor(p.y), p.facing, p.crouching || !!this.playerInSpot, p.animFrame, !p.grounded);
   }
 
   drawCatSprite(ctx: CanvasRenderingContext2D, x: number, y: number, facing: 1 | -1, crouching: boolean, frame: number, jumping: boolean) {
