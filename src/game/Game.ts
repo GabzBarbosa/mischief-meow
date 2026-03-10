@@ -2486,6 +2486,12 @@ export class Game {
     if (this.player.hidden) {
       ctx.fillStyle = 'rgba(68,204,102,0.3)';
       ctx.fillRect(0, 32, this.width, 2);
+      if (this.playerInSpot) {
+        ctx.fillStyle = '#44cc66';
+        ctx.font = '7px "Press Start 2P", monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(`Escondido: ${this.playerInSpot.type.toUpperCase()} [E] Sair`, this.width - 8, 26);
+      }
     }
   }
 
