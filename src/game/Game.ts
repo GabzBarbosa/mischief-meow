@@ -2455,7 +2455,8 @@ export class Game {
     // Chaos meter
     ctx.fillStyle = '#aaaaaa';
     ctx.textAlign = 'center';
-    ctx.fillText(`FASE ${this.currentLevel} | CAOS: ${this.chaos}`, this.width / 2, 14);
+    const modeLabel = this.gameMode === 'zombie' ? '🧟 ZUMBI' : '🏠 NORMAL';
+    ctx.fillText(`${modeLabel} FASE ${this.currentLevel} | CAOS: ${this.chaos}`, this.width / 2, 14);
 
     // Stealth indicator
     const stealthColor = this.stealthMeter > 70 ? '#ff4444' : this.stealthMeter > 30 ? '#ffcc44' : '#44cc66';
