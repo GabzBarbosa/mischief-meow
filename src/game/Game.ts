@@ -54,6 +54,14 @@ interface Collectible {
   animTimer: number;
 }
 
+interface HidingSpot {
+  x: number; y: number;
+  w: number; h: number;
+  type: 'bed' | 'wardrobe' | 'bucket' | 'box' | 'dumpster' | 'table';
+  occupied: boolean;
+  color: string;
+}
+
 interface Noise {
   x: number; y: number;
   radius: number;
