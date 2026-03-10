@@ -1867,33 +1867,170 @@ export class Game {
       if (plat.y >= 13 * TILE) {
         // Floor
         for (let tx = plat.x; tx < plat.x + plat.w; tx += TILE) {
-          ctx.fillStyle = COL.floor;
+          ctx.fillStyle = this.gameMode === 'zombie' ? '#2a3328' : COL.floor;
           ctx.fillRect(tx, plat.y, TILE, TILE);
-          ctx.fillStyle = COL.floorLight;
+          ctx.fillStyle = this.gameMode === 'zombie' ? '#3a4338' : COL.floorLight;
           ctx.fillRect(tx + 2, plat.y + 2, TILE - 4, 4);
           ctx.fillRect(tx + TILE / 2, plat.y + TILE / 2, TILE / 2 - 2, 4);
         }
-      } else if (plat.y === 0 || plat.x === 0 || plat.x >= 49 * TILE) {
+      } else if (plat.y === 0 || plat.x === 0 || plat.x >= (this.levelWidth - 2 * TILE)) {
         // Walls/ceiling
-        ctx.fillStyle = COL.wall;
+        ctx.fillStyle = this.gameMode === 'zombie' ? '#1a2218' : COL.wall;
         ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
-        ctx.fillStyle = COL.wallLight;
+        ctx.fillStyle = this.gameMode === 'zombie' ? '#253325' : COL.wallLight;
         ctx.fillRect(plat.x, plat.y, plat.w, 2);
       } else {
         // Furniture
-        ctx.fillStyle = COL.furniture;
+        ctx.fillStyle = this.gameMode === 'zombie' ? '#3a3528' : COL.furniture;
         ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
-        ctx.fillStyle = COL.furnitureLight;
+        ctx.fillStyle = this.gameMode === 'zombie' ? '#4a4538' : COL.furnitureLight;
         ctx.fillRect(plat.x, plat.y, plat.w, 3);
-        ctx.fillStyle = COL.furnitureDark;
+        ctx.fillStyle = this.gameMode === 'zombie' ? '#2a2518' : COL.furnitureDark;
         ctx.fillRect(plat.x, plat.y + plat.h - 2, plat.w, 2);
 
-        // Furniture legs (for tables/desks)
+        // Furniture legs
         if (plat.h <= TILE) {
-          ctx.fillStyle = COL.furnitureDark;
+          ctx.fillStyle = this.gameMode === 'zombie' ? '#2a2518' : COL.furnitureDark;
           ctx.fillRect(plat.x + 2, plat.y + plat.h, 4, 13 * TILE - plat.y - plat.h);
           ctx.fillRect(plat.x + plat.w - 6, plat.y + plat.h, 4, 13 * TILE - plat.y - plat.h);
         }
+      }
+    }
+  }
+
+  renderHidingSpots() {
+    const ctx = this.ctx;
+    const camX = this.camera.x;
+
+    for (const spot of this.hidingSpots) {
+      if (spot.x + spot.w < camX || spot.x > camX + this.width) continue;
+
+      const isNear = !this.playerInSpot && Math.sqrt(
+        (spot.x + spot.w/2 - this.player.x - this.player.w/2) ** 2 +
+        (spot.y + spot.h/2 - this.player.y - this.player.h/2) ** 2
+      ) < 50;
+
+      switch (spot.type) {
+        case 'bed':
+          // Bed frame
+          ctx.fillStyle = spot.color;
+          ctx.fillRect(spot.x, spot.y + spot.h - TILE, spot.w, TILE);
+          // Mattress
+          ctx.fillStyle = '#888877';
+          ctx.fillRect(spot.x + 2, spot.y + spot.h - TILE + 2, spot.w - 4, 8);
+          // Pillow
+          ctx.fillStyle = '#aaaaaa';
+          ctx.fillRect(spot.x + 4, spot.y + spot.h - TILE + 1, 12, 6);
+          // Blanket
+          ctx.fillStyle = '#667766';
+          ctx.fillRect(spot.x + 2, spot.y + spot.h - TILE + 10, spot.w - 4, TILE - 12);
+          // Legs
+          ctx.fillStyle = '#443322';
+          ctx.fillRect(spot.x + 2, spot.y + spot.h - TILE + TILE, 4, 13 * TILE - (spot.y + spot.h));
+          ctx.fillRect(spot.x + spot.w - 6, spot.y + spot.h - TILE + TILE, 4, 13 * TILE - (spot.y + spot.h));
+          // Space under bed hint
+          if (spot.occupied) {
+            ctx.fillStyle = 'rgba(68,204,102,0.15)';
+            ctx.fillRect(spot.x, spot.y + spot.h, spot.w, 13 * TILE - spot.y - spot.h);
+          }
+          break;
+
+        case 'wardrobe':
+          // Main body
+          ctx.fillStyle = spot.color;
+          ctx.fillRect(spot.x, spot.y, spot.w, spot.h);
+          // Door lines
+          ctx.fillStyle = '#333322';
+          ctx.fillRect(spot.x + spot.w / 2 - 1, spot.y + 2, 2, spot.h - 4);
+          // Handles
+          ctx.fillStyle = '#998877';
+          ctx.fillRect(spot.x + spot.w / 2 - 5, spot.y + spot.h / 2 - 2, 3, 4);
+          ctx.fillRect(spot.x + spot.w / 2 + 3, spot.y + spot.h / 2 - 2, 3, 4);
+          // Top
+          ctx.fillStyle = '#665544';
+          ctx.fillRect(spot.x - 2, spot.y - 3, spot.w + 4, 5);
+          if (spot.occupied) {
+            ctx.fillStyle = 'rgba(68,204,102,0.1)';
+            ctx.fillRect(spot.x, spot.y, spot.w, spot.h);
+          }
+          break;
+
+        case 'bucket':
+          // Bucket body
+          ctx.fillStyle = spot.color;
+          ctx.fillRect(spot.x + 3, spot.y + 4, spot.w - 6, spot.h - 4);
+          ctx.fillRect(spot.x + 1, spot.y + spot.h / 2, spot.w - 2, spot.h / 2);
+          // Rim
+          ctx.fillStyle = '#999999';
+          ctx.fillRect(spot.x, spot.y + 2, spot.w, 4);
+          // Handle
+          ctx.fillRect(spot.x + spot.w / 2 - 8, spot.y - 2, 2, 5);
+          ctx.fillRect(spot.x + spot.w / 2 + 6, spot.y - 2, 2, 5);
+          ctx.fillRect(spot.x + spot.w / 2 - 8, spot.y - 3, 16, 2);
+          if (spot.occupied) {
+            ctx.fillStyle = 'rgba(68,204,102,0.15)';
+            ctx.fillRect(spot.x, spot.y, spot.w, spot.h);
+          }
+          break;
+
+        case 'box':
+          ctx.fillStyle = spot.color;
+          ctx.fillRect(spot.x, spot.y, spot.w, spot.h);
+          // Flaps
+          ctx.fillStyle = '#665544';
+          ctx.fillRect(spot.x, spot.y, spot.w / 2 - 2, 5);
+          ctx.fillRect(spot.x + spot.w / 2 + 2, spot.y, spot.w / 2 - 2, 5);
+          // Tape
+          ctx.fillStyle = '#bbaa77';
+          ctx.fillRect(spot.x + spot.w / 2 - 3, spot.y + 5, 6, spot.h - 10);
+          if (spot.occupied) {
+            ctx.fillStyle = 'rgba(68,204,102,0.15)';
+            ctx.fillRect(spot.x, spot.y, spot.w, spot.h);
+          }
+          break;
+
+        case 'dumpster':
+          ctx.fillStyle = spot.color;
+          ctx.fillRect(spot.x, spot.y + 4, spot.w, spot.h - 4);
+          // Lid
+          ctx.fillStyle = '#335533';
+          ctx.fillRect(spot.x - 2, spot.y, spot.w + 4, 6);
+          // Label
+          ctx.fillStyle = '#223322';
+          ctx.fillRect(spot.x + 4, spot.y + spot.h / 2, spot.w - 8, 6);
+          if (spot.occupied) {
+            ctx.fillStyle = 'rgba(68,204,102,0.15)';
+            ctx.fillRect(spot.x, spot.y, spot.w, spot.h);
+          }
+          break;
+
+        case 'table':
+          // Table top
+          ctx.fillStyle = spot.color;
+          ctx.fillRect(spot.x, spot.y, spot.w, 6);
+          // Legs
+          ctx.fillStyle = '#554422';
+          ctx.fillRect(spot.x + 2, spot.y + 6, 4, spot.h - 6);
+          ctx.fillRect(spot.x + spot.w - 6, spot.y + 6, 4, spot.h - 6);
+          // Tablecloth
+          ctx.fillStyle = '#887766';
+          ctx.fillRect(spot.x - 3, spot.y, 5, 12);
+          ctx.fillRect(spot.x + spot.w - 2, spot.y, 5, 12);
+          if (spot.occupied) {
+            ctx.fillStyle = 'rgba(68,204,102,0.15)';
+            ctx.fillRect(spot.x + 4, spot.y + 6, spot.w - 8, spot.h - 6);
+          }
+          break;
+      }
+
+      // Proximity indicator
+      if (isNear) {
+        ctx.fillStyle = 'rgba(68,204,102,0.3)';
+        ctx.fillRect(spot.x - 2, spot.y - 2, spot.w + 4, spot.h + 4);
+        ctx.fillStyle = '#44cc66';
+        ctx.font = '7px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('[E] Esconder', spot.x + spot.w / 2, spot.y - 8);
       }
     }
   }
