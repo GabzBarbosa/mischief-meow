@@ -1139,7 +1139,50 @@ export class Game {
       this.interactWithObjects();
     }
 
-    // Check hiding
+    // Hide timer
+    if (this.hideTimer > 0) this.hideTimer -= dt;
+
+    // Zombie mode: hide in spots with E key
+    if (this.gameMode === 'zombie' && interact && this.hideTimer <= 0) {
+      if (this.playerInSpot) {
+        // Exit hiding spot
+        this.playerInSpot.occupied = false;
+        this.playerInSpot = null;
+        p.hidden = false;
+        this.hideTimer = 20;
+      } else {
+        // Try to enter a hiding spot
+        for (const spot of this.hidingSpots) {
+          const spotCenter = { x: spot.x + spot.w / 2, y: spot.y + spot.h / 2 };
+          const playerCenter = { x: p.x + p.w / 2, y: p.y + p.h / 2 };
+          const dist = Math.sqrt((spotCenter.x - playerCenter.x) ** 2 + (spotCenter.y - playerCenter.y) ** 2);
+          if (dist < 50) {
+            this.playerInSpot = spot;
+            spot.occupied = true;
+            p.hidden = true;
+            p.x = spot.x + spot.w / 2 - p.w / 2;
+            p.y = spot.y + spot.h - p.h;
+            p.vx = 0;
+            p.vy = 0;
+            this.hideTimer = 20;
+            this.sfx.meow();
+            break;
+          }
+        }
+      }
+    }
+
+    // If hiding in a spot, lock movement
+    if (this.playerInSpot) {
+      p.vx = 0;
+      p.vy = 0;
+      p.hidden = true;
+      p.x = this.playerInSpot.x + this.playerInSpot.w / 2 - p.w / 2;
+      p.y = this.playerInSpot.y + this.playerInSpot.h - p.h;
+      return; // Skip all other movement
+    }
+
+    // Check hiding (normal mode)
     p.hidden = p.crouching && this.isNearFurniture(p);
 
     // Stealth meter decay
