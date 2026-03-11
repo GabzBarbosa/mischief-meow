@@ -252,7 +252,11 @@ export class Game {
     this.playerInSpot = null;
     this.hideTimer = 0;
 
-    if (this.gameMode === 'zombie') {
+    if (this.gameMode === 'alien') {
+      if (this.currentLevel === 3) this.initAlien3();
+      else if (this.currentLevel === 2) this.initAlien2();
+      else this.initAlien1();
+    } else if (this.gameMode === 'zombie') {
       if (this.currentLevel === 3) this.initZombie3();
       else if (this.currentLevel === 2) this.initZombie2();
       else this.initZombie1();
