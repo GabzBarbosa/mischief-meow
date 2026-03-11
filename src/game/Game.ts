@@ -1047,6 +1047,368 @@ export class Game {
     ];
   }
 
+  // ==================
+  // ALIEN MODE LEVELS
+  // ==================
+
+  initAlien1() {
+    this.levelWidth = 60 * TILE;
+    this.maxLevel = 3;
+
+    this.player = {
+      x: 3 * TILE, y: 11 * TILE,
+      vx: 0, vy: 0, w: CAT_W, h: CAT_H,
+      grounded: false, crouching: false,
+      facing: 1, hidden: false,
+      lives: 5, invincible: 0,
+      animFrame: 0, animTimer: 0,
+      interactCooldown: 0,
+    };
+
+    // Nave de carga - corredores metálicos
+    this.platforms = [
+      { x: 0, y: 13 * TILE, w: 60 * TILE, h: 2 * TILE },
+      { x: 0, y: 0, w: TILE, h: 15 * TILE },
+      { x: 59 * TILE, y: 0, w: TILE, h: 15 * TILE },
+      { x: 0, y: 0, w: 60 * TILE, h: TILE },
+      // Área de carga
+      { x: 5 * TILE, y: 10 * TILE, w: 5 * TILE, h: TILE },
+      { x: 7 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Corredor 1
+      { x: 12 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Sala de controle
+      { x: 17 * TILE, y: 9 * TILE, w: 6 * TILE, h: TILE },
+      { x: 18 * TILE, y: 6 * TILE, w: 4 * TILE, h: TILE / 2 },
+      // Corredor 2
+      { x: 25 * TILE, y: 11 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 26 * TILE, y: 8 * TILE, w: 2 * TILE, h: TILE / 2 },
+      // Sala de máquinas
+      { x: 31 * TILE, y: 10 * TILE, w: 7 * TILE, h: TILE },
+      { x: 33 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 32 * TILE, y: 4 * TILE, w: 4 * TILE, h: TILE / 2 },
+      // Dutos de ventilação
+      { x: 40 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 44 * TILE, y: 9 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Baía de escape
+      { x: 49 * TILE, y: 10 * TILE, w: 5 * TILE, h: TILE },
+      { x: 50 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 55 * TILE, y: 11 * TILE, w: 2 * TILE, h: TILE / 2 },
+    ];
+
+    this.hidingSpots = [
+      { x: 6 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'box', occupied: false, color: '#555577' },
+      { x: 9 * TILE, y: 11 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#667788' },
+      { x: 13 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#778899' },
+      { x: 19 * TILE, y: 10 * TILE, w: 2 * TILE, h: 3 * TILE, type: 'table', occupied: false, color: '#445566' },
+      { x: 22 * TILE, y: 9 * TILE, w: TILE * 1.5, h: 4 * TILE, type: 'wardrobe', occupied: false, color: '#3a3a5a' },
+      { x: 27 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#667788' },
+      { x: 33 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'dumpster', occupied: false, color: '#4a4a6a' },
+      { x: 36 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'box', occupied: false, color: '#555577' },
+      { x: 44 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#3a3a5a' },
+      { x: 50 * TILE, y: 11 * TILE, w: 3 * TILE, h: 2 * TILE, type: 'bed', occupied: false, color: '#444466' },
+      { x: 55 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#667788' },
+    ];
+
+    this.objects = [
+      { x: 7 * TILE, y: 10 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 120, broken: false, breakable: true, color: '#6666aa' },
+      { x: 18 * TILE, y: 9 * TILE - 18, w: 10, h: 16, type: 'lamp', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: '#88ccff' },
+      { x: 34 * TILE, y: 10 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 80, broken: false, breakable: true, color: '#aaaacc' },
+      { x: 51 * TILE, y: 10 * TILE - 12, w: 12, h: 12, type: 'plant', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: '#33cc88' },
+    ];
+
+    this.collectibles = [
+      { x: 8 * TILE, y: 6 * TILE, type: 'fish', collected: false, animTimer: 0 },
+      { x: 14 * TILE, y: 10 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 20 * TILE, y: 5 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 27 * TILE, y: 7 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 34 * TILE, y: 3 * TILE, type: 'yarn', collected: false, animTimer: Math.random() * 100 },
+      { x: 41 * TILE, y: 10 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 45 * TILE, y: 8 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 52 * TILE, y: 6 * TILE, type: 'key', collected: false, animTimer: Math.random() * 100 },
+    ];
+
+    this.exit = { x: 57 * TILE, y: 8 * TILE, w: TILE * 1.5, h: 3 * TILE, locked: true };
+
+    this.enemies = [
+      {
+        x: 12 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 5 * TILE, patrolB: 22 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.0, visionRange: 200, visionAngle: Math.PI / 2,
+      },
+      {
+        x: 35 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 25 * TILE, patrolB: 45 * TILE,
+        facing: -1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 0.9, visionRange: 220, visionAngle: Math.PI / 2.5,
+      },
+      {
+        x: 52 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 44 * TILE, patrolB: 57 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.1, visionRange: 180, visionAngle: Math.PI / 2,
+      },
+    ];
+  }
+
+  initAlien2() {
+    this.levelWidth = 70 * TILE;
+    this.maxLevel = 3;
+
+    this.player = {
+      x: 3 * TILE, y: 11 * TILE,
+      vx: 0, vy: 0, w: CAT_W, h: CAT_H,
+      grounded: false, crouching: false,
+      facing: 1, hidden: false,
+      lives: 4, invincible: 0,
+      animFrame: 0, animTimer: 0,
+      interactCooldown: 0,
+    };
+
+    // Estação espacial - laboratórios e dormitórios
+    this.platforms = [
+      { x: 0, y: 13 * TILE, w: 70 * TILE, h: 2 * TILE },
+      { x: 0, y: 0, w: TILE, h: 15 * TILE },
+      { x: 69 * TILE, y: 0, w: TILE, h: 15 * TILE },
+      { x: 0, y: 0, w: 70 * TILE, h: TILE },
+      // Dormitório
+      { x: 4 * TILE, y: 10 * TILE, w: 6 * TILE, h: TILE },
+      { x: 5 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 11 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Corredor médico
+      { x: 16 * TILE, y: 9 * TILE, w: 5 * TILE, h: TILE },
+      { x: 17 * TILE, y: 6 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 22 * TILE, y: 11 * TILE, w: 2 * TILE, h: TILE / 2 },
+      // Laboratório
+      { x: 26 * TILE, y: 8 * TILE, w: 7 * TILE, h: TILE },
+      { x: 27 * TILE, y: 5 * TILE, w: 5 * TILE, h: TILE / 2 },
+      { x: 28 * TILE, y: 3 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 26 * TILE, y: 11 * TILE, w: 4 * TILE, h: TILE / 2 },
+      // Ponte de comando
+      { x: 35 * TILE, y: 10 * TILE, w: 8 * TILE, h: TILE },
+      { x: 36 * TILE, y: 7 * TILE, w: 6 * TILE, h: TILE / 2 },
+      { x: 37 * TILE, y: 4 * TILE, w: 4 * TILE, h: TILE / 2 },
+      // Setor de engenharia
+      { x: 45 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 49 * TILE, y: 9 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 50 * TILE, y: 6 * TILE, w: 2 * TILE, h: TILE / 2 },
+      { x: 54 * TILE, y: 10 * TILE, w: 5 * TILE, h: TILE },
+      { x: 55 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Hangar
+      { x: 61 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 64 * TILE, y: 9 * TILE, w: 3 * TILE, h: TILE / 2 },
+    ];
+
+    this.hidingSpots = [
+      { x: 5 * TILE, y: 11 * TILE, w: 3 * TILE, h: 2 * TILE, type: 'bed', occupied: false, color: '#3a3a5a' },
+      { x: 9 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#2a2a4a' },
+      { x: 12 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#556688' },
+      { x: 18 * TILE, y: 10 * TILE, w: 2 * TILE, h: 3 * TILE, type: 'table', occupied: false, color: '#445566' },
+      { x: 21 * TILE, y: 9 * TILE, w: TILE * 1.5, h: 4 * TILE, type: 'wardrobe', occupied: false, color: '#3a3a5a' },
+      { x: 27 * TILE, y: 9 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'box', occupied: false, color: '#555577' },
+      { x: 31 * TILE, y: 9 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'dumpster', occupied: false, color: '#4a4a6a' },
+      { x: 37 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'box', occupied: false, color: '#555577' },
+      { x: 41 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'dumpster', occupied: false, color: '#4a4a6a' },
+      { x: 46 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#556688' },
+      { x: 50 * TILE, y: 10 * TILE, w: 2 * TILE, h: 3 * TILE, type: 'table', occupied: false, color: '#445566' },
+      { x: 55 * TILE, y: 11 * TILE, w: 3 * TILE, h: 2 * TILE, type: 'bed', occupied: false, color: '#3a3a5a' },
+      { x: 62 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#556688' },
+      { x: 65 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#2a2a4a' },
+    ];
+
+    this.objects = [
+      { x: 6 * TILE, y: 10 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 130, broken: false, breakable: true, color: '#7777bb' },
+      { x: 17 * TILE, y: 9 * TILE - 18, w: 10, h: 16, type: 'lamp', falling: false, vy: 0, grounded: true, noiseRadius: 110, broken: false, breakable: true, color: '#66bbff' },
+      { x: 28 * TILE, y: 8 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 90, broken: false, breakable: true, color: '#bbbbdd' },
+      { x: 32 * TILE, y: 8 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 130, broken: false, breakable: true, color: '#7777bb' },
+      { x: 38 * TILE, y: 10 * TILE - 18, w: 10, h: 16, type: 'lamp', falling: false, vy: 0, grounded: true, noiseRadius: 110, broken: false, breakable: true, color: '#66bbff' },
+      { x: 56 * TILE, y: 10 * TILE - 12, w: 12, h: 12, type: 'plant', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: '#33ddaa' },
+    ];
+
+    this.collectibles = [
+      { x: 7 * TILE, y: 6 * TILE, type: 'fish', collected: false, animTimer: 0 },
+      { x: 13 * TILE, y: 10 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 19 * TILE, y: 5 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 29 * TILE, y: 2 * TILE, type: 'yarn', collected: false, animTimer: Math.random() * 100 },
+      { x: 33 * TILE, y: 4 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 39 * TILE, y: 3 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 46 * TILE, y: 10 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 51 * TILE, y: 5 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 57 * TILE, y: 6 * TILE, type: 'yarn', collected: false, animTimer: Math.random() * 100 },
+      { x: 64 * TILE, y: 8 * TILE, type: 'key', collected: false, animTimer: Math.random() * 100 },
+    ];
+
+    this.exit = { x: 67 * TILE, y: 6 * TILE, w: TILE * 1.5, h: 3 * TILE, locked: true };
+
+    this.enemies = [
+      {
+        x: 10 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 4 * TILE, patrolB: 20 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.2, visionRange: 210, visionAngle: Math.PI / 2,
+      },
+      {
+        x: 30 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 22 * TILE, patrolB: 40 * TILE,
+        facing: -1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.3, visionRange: 230, visionAngle: Math.PI / 2.5,
+      },
+      {
+        x: 48 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 40 * TILE, patrolB: 55 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.1, visionRange: 200, visionAngle: Math.PI / 2,
+      },
+      {
+        x: 62 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 55 * TILE, patrolB: 67 * TILE,
+        facing: -1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.4, visionRange: 240, visionAngle: Math.PI / 2,
+      },
+    ];
+  }
+
+  initAlien3() {
+    this.levelWidth = 80 * TILE;
+    this.maxLevel = 3;
+
+    this.player = {
+      x: 3 * TILE, y: 11 * TILE,
+      vx: 0, vy: 0, w: CAT_W, h: CAT_H,
+      grounded: false, crouching: false,
+      facing: 1, hidden: false,
+      lives: 3, invincible: 0,
+      animFrame: 0, animTimer: 0,
+      interactCooldown: 0,
+    };
+
+    // Nave-mãe alien - labirinto orgânico
+    this.platforms = [
+      { x: 0, y: 13 * TILE, w: 80 * TILE, h: 2 * TILE },
+      { x: 0, y: 0, w: TILE, h: 15 * TILE },
+      { x: 79 * TILE, y: 0, w: TILE, h: 15 * TILE },
+      { x: 0, y: 0, w: 80 * TILE, h: TILE },
+      // Câmara de contenção
+      { x: 4 * TILE, y: 10 * TILE, w: 5 * TILE, h: TILE },
+      { x: 5 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 10 * TILE, y: 11 * TILE, w: 2 * TILE, h: TILE / 2 },
+      // Túnel orgânico
+      { x: 14 * TILE, y: 9 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 18 * TILE, y: 7 * TILE, w: 2 * TILE, h: TILE / 2 },
+      { x: 15 * TILE, y: 12 * TILE, w: 4 * TILE, h: TILE / 2 },
+      // Sala de incubação
+      { x: 22 * TILE, y: 10 * TILE, w: 7 * TILE, h: TILE },
+      { x: 23 * TILE, y: 7 * TILE, w: 5 * TILE, h: TILE / 2 },
+      { x: 24 * TILE, y: 4 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 22 * TILE, y: 12 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Corredor central
+      { x: 31 * TILE, y: 11 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 32 * TILE, y: 8 * TILE, w: 2 * TILE, h: TILE / 2 },
+      // Câmara da rainha
+      { x: 37 * TILE, y: 9 * TILE, w: 8 * TILE, h: TILE },
+      { x: 38 * TILE, y: 6 * TILE, w: 6 * TILE, h: TILE / 2 },
+      { x: 39 * TILE, y: 3 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 37 * TILE, y: 12 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 43 * TILE, y: 12 * TILE, w: 2 * TILE, h: TILE / 2 },
+      // Dutos de escape
+      { x: 47 * TILE, y: 11 * TILE, w: 2 * TILE, h: TILE / 2 },
+      { x: 50 * TILE, y: 9 * TILE, w: 2 * TILE, h: TILE / 2 },
+      { x: 48 * TILE, y: 6 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 53 * TILE, y: 7 * TILE, w: 2 * TILE, h: TILE / 2 },
+      { x: 52 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Área de ovos
+      { x: 57 * TILE, y: 10 * TILE, w: 6 * TILE, h: TILE },
+      { x: 58 * TILE, y: 7 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 59 * TILE, y: 4 * TILE, w: 2 * TILE, h: TILE / 2 },
+      // Saída da nave
+      { x: 65 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 69 * TILE, y: 9 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 73 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 74 * TILE, y: 10 * TILE, w: 3 * TILE, h: TILE / 2 },
+    ];
+
+    this.hidingSpots = [
+      { x: 5 * TILE, y: 11 * TILE, w: 3 * TILE, h: 2 * TILE, type: 'bed', occupied: false, color: '#3a3a5a' },
+      { x: 10 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#556688' },
+      { x: 15 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#2a2a4a' },
+      { x: 23 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'box', occupied: false, color: '#555577' },
+      { x: 27 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'dumpster', occupied: false, color: '#4a4a6a' },
+      { x: 32 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#556688' },
+      { x: 38 * TILE, y: 10 * TILE, w: 2 * TILE, h: 3 * TILE, type: 'table', occupied: false, color: '#445566' },
+      { x: 42 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#2a2a4a' },
+      { x: 44 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#3a3a5a' },
+      { x: 48 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#667788' },
+      { x: 53 * TILE, y: 12 * TILE, w: 2 * TILE, h: TILE, type: 'box', occupied: false, color: '#555577' },
+      { x: 58 * TILE, y: 11 * TILE, w: 3 * TILE, h: 2 * TILE, type: 'bed', occupied: false, color: '#3a3a5a' },
+      { x: 62 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'dumpster', occupied: false, color: '#4a4a6a' },
+      { x: 66 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#556688' },
+      { x: 70 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#2a2a4a' },
+      { x: 75 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'box', occupied: false, color: '#555577' },
+    ];
+
+    this.objects = [
+      { x: 6 * TILE, y: 10 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 140, broken: false, breakable: true, color: '#8877cc' },
+      { x: 8 * TILE, y: 10 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: '#bbbbdd' },
+      { x: 24 * TILE, y: 10 * TILE - 18, w: 10, h: 16, type: 'lamp', falling: false, vy: 0, grounded: true, noiseRadius: 120, broken: false, breakable: true, color: '#77ddff' },
+      { x: 27 * TILE, y: 10 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 140, broken: false, breakable: true, color: '#8877cc' },
+      { x: 39 * TILE, y: 9 * TILE - 18, w: 10, h: 16, type: 'lamp', falling: false, vy: 0, grounded: true, noiseRadius: 120, broken: false, breakable: true, color: '#77ddff' },
+      { x: 43 * TILE, y: 9 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: '#bbbbdd' },
+      { x: 59 * TILE, y: 10 * TILE - 12, w: 12, h: 12, type: 'plant', falling: false, vy: 0, grounded: true, noiseRadius: 110, broken: false, breakable: true, color: '#33ddaa' },
+      { x: 62 * TILE, y: 10 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 140, broken: false, breakable: true, color: '#8877cc' },
+    ];
+
+    this.collectibles = [
+      { x: 6 * TILE, y: 6 * TILE, type: 'fish', collected: false, animTimer: 0 },
+      { x: 11 * TILE, y: 10 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 18 * TILE, y: 6 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 25 * TILE, y: 3 * TILE, type: 'yarn', collected: false, animTimer: Math.random() * 100 },
+      { x: 29 * TILE, y: 6 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 33 * TILE, y: 7 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 40 * TILE, y: 2 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 44 * TILE, y: 5 * TILE, type: 'yarn', collected: false, animTimer: Math.random() * 100 },
+      { x: 49 * TILE, y: 5 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 54 * TILE, y: 6 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 60 * TILE, y: 3 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 69 * TILE, y: 8 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 73 * TILE, y: 6 * TILE, type: 'key', collected: false, animTimer: Math.random() * 100 },
+    ];
+
+    this.exit = { x: 76 * TILE, y: 7 * TILE, w: TILE * 1.5, h: 3 * TILE, locked: true };
+
+    this.enemies = [
+      {
+        x: 8 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 3 * TILE, patrolB: 16 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.3, visionRange: 220, visionAngle: Math.PI / 2,
+      },
+      {
+        x: 25 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 18 * TILE, patrolB: 35 * TILE,
+        facing: -1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.4, visionRange: 240, visionAngle: Math.PI / 2,
+      },
+      {
+        x: 40 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 35 * TILE, patrolB: 50 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.5, visionRange: 230, visionAngle: Math.PI / 2.5,
+      },
+      {
+        x: 55 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 48 * TILE, patrolB: 65 * TILE,
+        facing: -1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.6, visionRange: 250, visionAngle: Math.PI / 2,
+      },
+      {
+        x: 70 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 63 * TILE, patrolB: 77 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.7, visionRange: 260, visionAngle: Math.PI / 2,
+      },
+    ];
+  }
+
   loop = () => {
     const now = performance.now();
     const dt = Math.min((now - this.lastTime) / 16.667, 3); // normalize to ~60fps
