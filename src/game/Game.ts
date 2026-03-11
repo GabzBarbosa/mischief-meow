@@ -1885,11 +1885,11 @@ export class Game {
         ctx.fillRect(plat.x, plat.y, plat.w, 2);
       } else {
         // Furniture
-        ctx.fillStyle = this.gameMode === 'zombie' ? '#3a3528' : COL.furniture;
+        ctx.fillStyle = this.gameMode === 'alien' ? '#252545' : this.gameMode === 'zombie' ? '#3a3528' : COL.furniture;
         ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
-        ctx.fillStyle = this.gameMode === 'zombie' ? '#4a4538' : COL.furnitureLight;
+        ctx.fillStyle = this.gameMode === 'alien' ? '#353565' : this.gameMode === 'zombie' ? '#4a4538' : COL.furnitureLight;
         ctx.fillRect(plat.x, plat.y, plat.w, 3);
-        ctx.fillStyle = this.gameMode === 'zombie' ? '#2a2518' : COL.furnitureDark;
+        ctx.fillStyle = this.gameMode === 'alien' ? '#151535' : this.gameMode === 'zombie' ? '#2a2518' : COL.furnitureDark;
         ctx.fillRect(plat.x, plat.y + plat.h - 2, plat.w, 2);
 
         // Furniture legs
