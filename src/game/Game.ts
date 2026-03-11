@@ -1871,9 +1871,9 @@ export class Game {
       if (plat.y >= 13 * TILE) {
         // Floor
         for (let tx = plat.x; tx < plat.x + plat.w; tx += TILE) {
-          ctx.fillStyle = this.gameMode === 'zombie' ? '#2a3328' : COL.floor;
+          ctx.fillStyle = this.gameMode === 'alien' ? '#1a1a3a' : this.gameMode === 'zombie' ? '#2a3328' : COL.floor;
           ctx.fillRect(tx, plat.y, TILE, TILE);
-          ctx.fillStyle = this.gameMode === 'zombie' ? '#3a4338' : COL.floorLight;
+          ctx.fillStyle = this.gameMode === 'alien' ? '#2a2a4a' : this.gameMode === 'zombie' ? '#3a4338' : COL.floorLight;
           ctx.fillRect(tx + 2, plat.y + 2, TILE - 4, 4);
           ctx.fillRect(tx + TILE / 2, plat.y + TILE / 2, TILE / 2 - 2, 4);
         }
