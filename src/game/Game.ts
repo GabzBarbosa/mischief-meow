@@ -2657,6 +2657,80 @@ export class Game {
     ctx.fillRect(ex + 10, ey + 8 + wobble / 2, 1, 2);
   }
 
+  renderAlien(ctx: CanvasRenderingContext2D, ex: number, ey: number, enemy: Enemy) {
+    const pulse = Math.sin(this.frameCount * 0.06 + ex) * 1.5;
+
+    // Legs (thin, insectoid)
+    ctx.fillStyle = '#2a2a5a';
+    ctx.fillRect(ex + 1, ey + 26, 4, 12);
+    ctx.fillRect(ex + 6, ey + 26 + pulse, 4, 12);
+    ctx.fillRect(ex + 11, ey + 26, 4, 12);
+    // Claws
+    ctx.fillStyle = '#4444aa';
+    ctx.fillRect(ex, ey + 37, 6, 2);
+    ctx.fillRect(ex + 5, ey + 37 + pulse, 6, 2);
+    ctx.fillRect(ex + 10, ey + 37, 6, 2);
+
+    // Body (elongated)
+    ctx.fillStyle = enemy.state === 'alert' ? '#553355' : enemy.state === 'suspicious' ? '#334455' : '#2a2a4a';
+    ctx.fillRect(ex + 1, ey + 8 + pulse / 2, enemy.w - 2, 20);
+    // Carapace ridges
+    ctx.fillStyle = '#3a3a6a';
+    ctx.fillRect(ex + 3, ey + 10 + pulse / 2, 12, 2);
+    ctx.fillRect(ex + 4, ey + 15 + pulse / 2, 10, 2);
+    ctx.fillRect(ex + 3, ey + 20 + pulse / 2, 12, 2);
+    // Bio-luminescent stripe
+    const bioGlow = Math.sin(this.frameCount * 0.08) * 0.3 + 0.7;
+    ctx.fillStyle = `rgba(100,200,255,${bioGlow * 0.3})`;
+    ctx.fillRect(ex + 7, ey + 10 + pulse / 2, 4, 16);
+
+    // Arms (long, clawed)
+    ctx.fillStyle = '#2a2a5a';
+    ctx.fillRect(ex - 5, ey + 10 + pulse, 5, 3);
+    ctx.fillRect(ex - 8, ey + 12 + pulse, 4, 10);
+    ctx.fillRect(ex + enemy.w, ey + 12, 5, 3);
+    ctx.fillRect(ex + enemy.w + 3, ey + 14, 4, 10);
+    // Clawed hands
+    ctx.fillStyle = '#5555aa';
+    ctx.fillRect(ex - 10, ey + 21 + pulse, 3, 4);
+    ctx.fillRect(ex + enemy.w + 5, ey + 23, 3, 4);
+
+    // Head (elongated dome)
+    ctx.fillStyle = '#3a3a5a';
+    ctx.fillRect(ex + 2, ey - 2 + pulse / 2, 14, 12);
+    // Dome
+    ctx.fillStyle = '#2a2a4a';
+    ctx.fillRect(ex + 4, ey - 6 + pulse / 2, 10, 5);
+    ctx.fillRect(ex + 6, ey - 9 + pulse / 2, 6, 4);
+
+    // Eyes (large, glowing)
+    const eyeGlow = Math.sin(this.frameCount * 0.07) * 0.3 + 0.7;
+    ctx.fillStyle = enemy.state === 'alert' ? `rgba(255,50,80,${eyeGlow})` : `rgba(80,180,255,${eyeGlow})`;
+    const aEyeX = enemy.facing === 1 ? ex + 9 : ex + 3;
+    ctx.fillRect(aEyeX, ey + 1 + pulse / 2, 4, 4);
+    ctx.fillRect(aEyeX - 5, ey + 1 + pulse / 2, 4, 4);
+    // Eye glow aura
+    ctx.fillStyle = enemy.state === 'alert' ? 'rgba(255,50,80,0.15)' : 'rgba(80,180,255,0.1)';
+    ctx.fillRect(aEyeX - 7, ey - 1 + pulse / 2, 14, 8);
+
+    // Mandibles
+    ctx.fillStyle = '#5555aa';
+    ctx.fillRect(ex + 4, ey + 8 + pulse / 2, 3, 3);
+    ctx.fillRect(ex + 11, ey + 8 + pulse / 2, 3, 3);
+    // Inner mouth
+    ctx.fillStyle = '#1a1a3a';
+    ctx.fillRect(ex + 6, ey + 8 + pulse / 2, 6, 2);
+
+    // Antennae
+    ctx.fillStyle = '#4444aa';
+    ctx.fillRect(ex + 5, ey - 12 + pulse / 2, 1, 5);
+    ctx.fillRect(ex + 12, ey - 12 + pulse / 2, 1, 5);
+    // Antenna tips glow
+    ctx.fillStyle = `rgba(100,200,255,${eyeGlow})`;
+    ctx.fillRect(ex + 4, ey - 14 + pulse / 2, 3, 3);
+    ctx.fillRect(ex + 11, ey - 14 + pulse / 2, 3, 3);
+  }
+
   renderVisionCone(ctx: CanvasRenderingContext2D, enemy: Enemy) {
     const ex = enemy.x + enemy.w / 2;
     const ey = enemy.y + enemy.h / 3;
