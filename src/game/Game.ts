@@ -2107,25 +2107,26 @@ export class Game {
     ctx.fillStyle = '#ddaa33';
     ctx.font = '16px "Press Start 2P", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('ESCOLHA O MODO', this.width / 2, 60);
+    ctx.fillText('ESCOLHA O MODO', this.width / 2, 50);
 
-    // Normal mode card
-    const cardW = 300;
-    const cardH = 200;
-    const gap = 40;
-    const startX = (this.width - (2 * cardW + gap)) / 2;
-    const cy = 100;
-
-    const modes = [
-      { name: 'NORMAL', desc: 'Seja furtivo e cause caos!', subDesc: 'Humanos patrulham a casa', color: '#4488cc', icon: '🏠' },
-      { name: 'ZUMBI', desc: 'Sobreviva ao apocalipse!', subDesc: 'Esconda-se dos zumbis', color: '#44aa44', icon: '🧟' },
+    const modes: Array<{ name: string; desc: string; subDesc: string; color: string; icon: string; mode: 'normal' | 'zombie' | 'alien'; hint?: string; hint2?: string }> = [
+      { name: 'NORMAL', desc: 'Seja furtivo e cause caos!', subDesc: 'Humanos patrulham a casa', color: '#4488cc', icon: '🏠', mode: 'normal' },
+      { name: 'ZUMBI', desc: 'Sobreviva ao apocalipse!', subDesc: 'Esconda-se dos zumbis', color: '#44aa44', icon: '🧟', mode: 'zombie', hint: 'E = Esconder em objetos', hint2: 'Camas, armários, baldes...' },
+      { name: 'ALIEN', desc: 'Fuga da nave espacial!', subDesc: 'Aliens caçam na escuridão', color: '#8855cc', icon: '👽', mode: 'alien', hint: 'E = Esconder em objetos', hint2: 'Caixas, armários, pods...' },
     ];
 
-    const selectedMode = this.gameMode === 'zombie' ? 1 : 0;
+    const cardW = 220;
+    const cardH = 180;
+    const gap = 25;
+    const totalW = modes.length * cardW + (modes.length - 1) * gap;
+    const startX = (this.width - totalW) / 2;
+    const cy = 80;
+
+    const selectedIdx = this.gameMode === 'alien' ? 2 : this.gameMode === 'zombie' ? 1 : 0;
 
     modes.forEach((mode, i) => {
       const mx = startX + i * (cardW + gap);
-      const selected = i === selectedMode;
+      const selected = i === selectedIdx;
 
       ctx.fillStyle = selected ? `${mode.color}33` : 'rgba(255,255,255,0.05)';
       ctx.fillRect(mx, cy, cardW, cardH);
@@ -2133,29 +2134,29 @@ export class Game {
       ctx.lineWidth = selected ? 3 : 1;
       ctx.strokeRect(mx, cy, cardW, cardH);
 
-      ctx.font = '28px "Press Start 2P", monospace';
+      ctx.font = '24px "Press Start 2P", monospace';
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(mode.icon, mx + cardW / 2, cy + 50);
+      ctx.fillText(mode.icon, mx + cardW / 2, cy + 40);
 
       ctx.fillStyle = selected ? mode.color : '#aaaaaa';
-      ctx.font = '12px "Press Start 2P", monospace';
-      ctx.fillText(mode.name, mx + cardW / 2, cy + 90);
+      ctx.font = '10px "Press Start 2P", monospace';
+      ctx.fillText(mode.name, mx + cardW / 2, cy + 70);
 
       ctx.fillStyle = '#888888';
-      ctx.font = '7px "Press Start 2P", monospace';
-      ctx.fillText(mode.desc, mx + cardW / 2, cy + 120);
-      ctx.fillText(mode.subDesc, mx + cardW / 2, cy + 140);
+      ctx.font = '6px "Press Start 2P", monospace';
+      ctx.fillText(mode.desc, mx + cardW / 2, cy + 95);
+      ctx.fillText(mode.subDesc, mx + cardW / 2, cy + 112);
 
-      if (i === 1) {
-        ctx.fillStyle = '#66aa66';
-        ctx.font = '6px "Press Start 2P", monospace';
-        ctx.fillText('E = Esconder em objetos', mx + cardW / 2, cy + 165);
-        ctx.fillText('Camas, armários, baldes...', mx + cardW / 2, cy + 180);
+      if (mode.hint) {
+        ctx.fillStyle = mode.mode === 'alien' ? '#8866cc' : '#66aa66';
+        ctx.font = '5px "Press Start 2P", monospace';
+        ctx.fillText(mode.hint, mx + cardW / 2, cy + 135);
+        ctx.fillText(mode.hint2 || '', mx + cardW / 2, cy + 148);
       }
 
       ctx.fillStyle = selected ? mode.color : '#555555';
       ctx.font = '8px "Press Start 2P", monospace';
-      ctx.fillText(`[${i + 1}]`, mx + cardW / 2, cy + cardH - 10);
+      ctx.fillText(`[${i + 1}]`, mx + cardW / 2, cy + cardH - 8);
     });
 
     if (Math.sin(this.frameCount * 0.05) > 0) {
@@ -2167,13 +2168,18 @@ export class Game {
     this.frameCount++;
 
     if (this.keysJustPressed.has('ArrowRight') || this.keysJustPressed.has('KeyD')) {
-      this.gameMode = 'zombie';
+      const modeOrder: Array<'normal' | 'zombie' | 'alien'> = ['normal', 'zombie', 'alien'];
+      const idx = modeOrder.indexOf(this.gameMode);
+      this.gameMode = modeOrder[(idx + 1) % modeOrder.length];
     }
     if (this.keysJustPressed.has('ArrowLeft') || this.keysJustPressed.has('KeyA')) {
-      this.gameMode = 'normal';
+      const modeOrder: Array<'normal' | 'zombie' | 'alien'> = ['normal', 'zombie', 'alien'];
+      const idx = modeOrder.indexOf(this.gameMode);
+      this.gameMode = modeOrder[(idx - 1 + modeOrder.length) % modeOrder.length];
     }
     if (this.keysJustPressed.has('Digit1')) this.gameMode = 'normal';
     if (this.keysJustPressed.has('Digit2')) this.gameMode = 'zombie';
+    if (this.keysJustPressed.has('Digit3')) this.gameMode = 'alien';
 
     if (this.keysJustPressed.has('Space') || this.keysJustPressed.has('Enter')) {
       this.startGame();
