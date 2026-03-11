@@ -1879,9 +1879,9 @@ export class Game {
         }
       } else if (plat.y === 0 || plat.x === 0 || plat.x >= (this.levelWidth - 2 * TILE)) {
         // Walls/ceiling
-        ctx.fillStyle = this.gameMode === 'zombie' ? '#1a2218' : COL.wall;
+        ctx.fillStyle = this.gameMode === 'alien' ? '#0e0e2a' : this.gameMode === 'zombie' ? '#1a2218' : COL.wall;
         ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
-        ctx.fillStyle = this.gameMode === 'zombie' ? '#253325' : COL.wallLight;
+        ctx.fillStyle = this.gameMode === 'alien' ? '#1a1a3a' : this.gameMode === 'zombie' ? '#253325' : COL.wallLight;
         ctx.fillRect(plat.x, plat.y, plat.w, 2);
       } else {
         // Furniture
