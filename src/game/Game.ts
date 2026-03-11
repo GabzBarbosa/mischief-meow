@@ -1508,8 +1508,8 @@ export class Game {
     // Hide timer
     if (this.hideTimer > 0) this.hideTimer -= dt;
 
-    // Zombie mode: hide in spots with E key
-    if (this.gameMode === 'zombie' && interact && this.hideTimer <= 0) {
+    // Zombie/Alien mode: hide in spots with E key
+    if ((this.gameMode === 'zombie' || this.gameMode === 'alien') && interact && this.hideTimer <= 0) {
       if (this.playerInSpot) {
         // Exit hiding spot
         this.playerInSpot.occupied = false;
