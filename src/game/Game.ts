@@ -1894,7 +1894,7 @@ export class Game {
 
         // Furniture legs
         if (plat.h <= TILE) {
-          ctx.fillStyle = this.gameMode === 'zombie' ? '#2a2518' : COL.furnitureDark;
+          ctx.fillStyle = this.gameMode === 'alien' ? '#151535' : this.gameMode === 'zombie' ? '#2a2518' : COL.furnitureDark;
           ctx.fillRect(plat.x + 2, plat.y + plat.h, 4, 13 * TILE - plat.y - plat.h);
           ctx.fillRect(plat.x + plat.w - 6, plat.y + plat.h, 4, 13 * TILE - plat.y - plat.h);
         }
