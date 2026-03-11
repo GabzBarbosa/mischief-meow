@@ -191,7 +191,7 @@ export class Game {
   currentLevel = 1;
   maxLevel = 3;
   selectedCat = 0;
-  gameMode: 'normal' | 'zombie' = 'normal';
+  gameMode: 'normal' | 'zombie' | 'alien' = 'normal';
   hidingSpots: HidingSpot[] = [];
   playerInSpot: HidingSpot | null = null;
   hideTimer = 0;
