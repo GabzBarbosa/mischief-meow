@@ -2202,6 +2202,8 @@ export class Game {
 
       if (this.gameMode === 'zombie') {
         this.renderZombie(ctx, ex, ey, enemy);
+      } else if (this.gameMode === 'alien') {
+        this.renderAlien(ctx, ex, ey, enemy);
       } else {
         this.renderHuman(ctx, ex, ey, enemy);
       }
