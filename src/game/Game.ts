@@ -191,7 +191,7 @@ export class Game {
   currentLevel = 1;
   maxLevel = 3;
   selectedCat = 0;
-  gameMode: 'normal' | 'zombie' = 'normal';
+  gameMode: 'normal' | 'zombie' | 'alien' = 'normal';
   hidingSpots: HidingSpot[] = [];
   playerInSpot: HidingSpot | null = null;
   hideTimer = 0;
@@ -252,7 +252,11 @@ export class Game {
     this.playerInSpot = null;
     this.hideTimer = 0;
 
-    if (this.gameMode === 'zombie') {
+    if (this.gameMode === 'alien') {
+      if (this.currentLevel === 3) this.initAlien3();
+      else if (this.currentLevel === 2) this.initAlien2();
+      else this.initAlien1();
+    } else if (this.gameMode === 'zombie') {
       if (this.currentLevel === 3) this.initZombie3();
       else if (this.currentLevel === 2) this.initZombie2();
       else this.initZombie1();
@@ -1043,6 +1047,368 @@ export class Game {
     ];
   }
 
+  // ==================
+  // ALIEN MODE LEVELS
+  // ==================
+
+  initAlien1() {
+    this.levelWidth = 60 * TILE;
+    this.maxLevel = 3;
+
+    this.player = {
+      x: 3 * TILE, y: 11 * TILE,
+      vx: 0, vy: 0, w: CAT_W, h: CAT_H,
+      grounded: false, crouching: false,
+      facing: 1, hidden: false,
+      lives: 5, invincible: 0,
+      animFrame: 0, animTimer: 0,
+      interactCooldown: 0,
+    };
+
+    // Nave de carga - corredores metálicos
+    this.platforms = [
+      { x: 0, y: 13 * TILE, w: 60 * TILE, h: 2 * TILE },
+      { x: 0, y: 0, w: TILE, h: 15 * TILE },
+      { x: 59 * TILE, y: 0, w: TILE, h: 15 * TILE },
+      { x: 0, y: 0, w: 60 * TILE, h: TILE },
+      // Área de carga
+      { x: 5 * TILE, y: 10 * TILE, w: 5 * TILE, h: TILE },
+      { x: 7 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Corredor 1
+      { x: 12 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Sala de controle
+      { x: 17 * TILE, y: 9 * TILE, w: 6 * TILE, h: TILE },
+      { x: 18 * TILE, y: 6 * TILE, w: 4 * TILE, h: TILE / 2 },
+      // Corredor 2
+      { x: 25 * TILE, y: 11 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 26 * TILE, y: 8 * TILE, w: 2 * TILE, h: TILE / 2 },
+      // Sala de máquinas
+      { x: 31 * TILE, y: 10 * TILE, w: 7 * TILE, h: TILE },
+      { x: 33 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 32 * TILE, y: 4 * TILE, w: 4 * TILE, h: TILE / 2 },
+      // Dutos de ventilação
+      { x: 40 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 44 * TILE, y: 9 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Baía de escape
+      { x: 49 * TILE, y: 10 * TILE, w: 5 * TILE, h: TILE },
+      { x: 50 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 55 * TILE, y: 11 * TILE, w: 2 * TILE, h: TILE / 2 },
+    ];
+
+    this.hidingSpots = [
+      { x: 6 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'box', occupied: false, color: '#555577' },
+      { x: 9 * TILE, y: 11 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#667788' },
+      { x: 13 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#778899' },
+      { x: 19 * TILE, y: 10 * TILE, w: 2 * TILE, h: 3 * TILE, type: 'table', occupied: false, color: '#445566' },
+      { x: 22 * TILE, y: 9 * TILE, w: TILE * 1.5, h: 4 * TILE, type: 'wardrobe', occupied: false, color: '#3a3a5a' },
+      { x: 27 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#667788' },
+      { x: 33 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'dumpster', occupied: false, color: '#4a4a6a' },
+      { x: 36 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'box', occupied: false, color: '#555577' },
+      { x: 44 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#3a3a5a' },
+      { x: 50 * TILE, y: 11 * TILE, w: 3 * TILE, h: 2 * TILE, type: 'bed', occupied: false, color: '#444466' },
+      { x: 55 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#667788' },
+    ];
+
+    this.objects = [
+      { x: 7 * TILE, y: 10 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 120, broken: false, breakable: true, color: '#6666aa' },
+      { x: 18 * TILE, y: 9 * TILE - 18, w: 10, h: 16, type: 'lamp', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: '#88ccff' },
+      { x: 34 * TILE, y: 10 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 80, broken: false, breakable: true, color: '#aaaacc' },
+      { x: 51 * TILE, y: 10 * TILE - 12, w: 12, h: 12, type: 'plant', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: '#33cc88' },
+    ];
+
+    this.collectibles = [
+      { x: 8 * TILE, y: 6 * TILE, type: 'fish', collected: false, animTimer: 0 },
+      { x: 14 * TILE, y: 10 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 20 * TILE, y: 5 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 27 * TILE, y: 7 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 34 * TILE, y: 3 * TILE, type: 'yarn', collected: false, animTimer: Math.random() * 100 },
+      { x: 41 * TILE, y: 10 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 45 * TILE, y: 8 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 52 * TILE, y: 6 * TILE, type: 'key', collected: false, animTimer: Math.random() * 100 },
+    ];
+
+    this.exit = { x: 57 * TILE, y: 8 * TILE, w: TILE * 1.5, h: 3 * TILE, locked: true };
+
+    this.enemies = [
+      {
+        x: 12 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 5 * TILE, patrolB: 22 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.0, visionRange: 200, visionAngle: Math.PI / 2,
+      },
+      {
+        x: 35 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 25 * TILE, patrolB: 45 * TILE,
+        facing: -1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 0.9, visionRange: 220, visionAngle: Math.PI / 2.5,
+      },
+      {
+        x: 52 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 44 * TILE, patrolB: 57 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.1, visionRange: 180, visionAngle: Math.PI / 2,
+      },
+    ];
+  }
+
+  initAlien2() {
+    this.levelWidth = 70 * TILE;
+    this.maxLevel = 3;
+
+    this.player = {
+      x: 3 * TILE, y: 11 * TILE,
+      vx: 0, vy: 0, w: CAT_W, h: CAT_H,
+      grounded: false, crouching: false,
+      facing: 1, hidden: false,
+      lives: 4, invincible: 0,
+      animFrame: 0, animTimer: 0,
+      interactCooldown: 0,
+    };
+
+    // Estação espacial - laboratórios e dormitórios
+    this.platforms = [
+      { x: 0, y: 13 * TILE, w: 70 * TILE, h: 2 * TILE },
+      { x: 0, y: 0, w: TILE, h: 15 * TILE },
+      { x: 69 * TILE, y: 0, w: TILE, h: 15 * TILE },
+      { x: 0, y: 0, w: 70 * TILE, h: TILE },
+      // Dormitório
+      { x: 4 * TILE, y: 10 * TILE, w: 6 * TILE, h: TILE },
+      { x: 5 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 11 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Corredor médico
+      { x: 16 * TILE, y: 9 * TILE, w: 5 * TILE, h: TILE },
+      { x: 17 * TILE, y: 6 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 22 * TILE, y: 11 * TILE, w: 2 * TILE, h: TILE / 2 },
+      // Laboratório
+      { x: 26 * TILE, y: 8 * TILE, w: 7 * TILE, h: TILE },
+      { x: 27 * TILE, y: 5 * TILE, w: 5 * TILE, h: TILE / 2 },
+      { x: 28 * TILE, y: 3 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 26 * TILE, y: 11 * TILE, w: 4 * TILE, h: TILE / 2 },
+      // Ponte de comando
+      { x: 35 * TILE, y: 10 * TILE, w: 8 * TILE, h: TILE },
+      { x: 36 * TILE, y: 7 * TILE, w: 6 * TILE, h: TILE / 2 },
+      { x: 37 * TILE, y: 4 * TILE, w: 4 * TILE, h: TILE / 2 },
+      // Setor de engenharia
+      { x: 45 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 49 * TILE, y: 9 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 50 * TILE, y: 6 * TILE, w: 2 * TILE, h: TILE / 2 },
+      { x: 54 * TILE, y: 10 * TILE, w: 5 * TILE, h: TILE },
+      { x: 55 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Hangar
+      { x: 61 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 64 * TILE, y: 9 * TILE, w: 3 * TILE, h: TILE / 2 },
+    ];
+
+    this.hidingSpots = [
+      { x: 5 * TILE, y: 11 * TILE, w: 3 * TILE, h: 2 * TILE, type: 'bed', occupied: false, color: '#3a3a5a' },
+      { x: 9 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#2a2a4a' },
+      { x: 12 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#556688' },
+      { x: 18 * TILE, y: 10 * TILE, w: 2 * TILE, h: 3 * TILE, type: 'table', occupied: false, color: '#445566' },
+      { x: 21 * TILE, y: 9 * TILE, w: TILE * 1.5, h: 4 * TILE, type: 'wardrobe', occupied: false, color: '#3a3a5a' },
+      { x: 27 * TILE, y: 9 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'box', occupied: false, color: '#555577' },
+      { x: 31 * TILE, y: 9 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'dumpster', occupied: false, color: '#4a4a6a' },
+      { x: 37 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'box', occupied: false, color: '#555577' },
+      { x: 41 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'dumpster', occupied: false, color: '#4a4a6a' },
+      { x: 46 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#556688' },
+      { x: 50 * TILE, y: 10 * TILE, w: 2 * TILE, h: 3 * TILE, type: 'table', occupied: false, color: '#445566' },
+      { x: 55 * TILE, y: 11 * TILE, w: 3 * TILE, h: 2 * TILE, type: 'bed', occupied: false, color: '#3a3a5a' },
+      { x: 62 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#556688' },
+      { x: 65 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#2a2a4a' },
+    ];
+
+    this.objects = [
+      { x: 6 * TILE, y: 10 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 130, broken: false, breakable: true, color: '#7777bb' },
+      { x: 17 * TILE, y: 9 * TILE - 18, w: 10, h: 16, type: 'lamp', falling: false, vy: 0, grounded: true, noiseRadius: 110, broken: false, breakable: true, color: '#66bbff' },
+      { x: 28 * TILE, y: 8 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 90, broken: false, breakable: true, color: '#bbbbdd' },
+      { x: 32 * TILE, y: 8 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 130, broken: false, breakable: true, color: '#7777bb' },
+      { x: 38 * TILE, y: 10 * TILE - 18, w: 10, h: 16, type: 'lamp', falling: false, vy: 0, grounded: true, noiseRadius: 110, broken: false, breakable: true, color: '#66bbff' },
+      { x: 56 * TILE, y: 10 * TILE - 12, w: 12, h: 12, type: 'plant', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: '#33ddaa' },
+    ];
+
+    this.collectibles = [
+      { x: 7 * TILE, y: 6 * TILE, type: 'fish', collected: false, animTimer: 0 },
+      { x: 13 * TILE, y: 10 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 19 * TILE, y: 5 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 29 * TILE, y: 2 * TILE, type: 'yarn', collected: false, animTimer: Math.random() * 100 },
+      { x: 33 * TILE, y: 4 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 39 * TILE, y: 3 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 46 * TILE, y: 10 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 51 * TILE, y: 5 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 57 * TILE, y: 6 * TILE, type: 'yarn', collected: false, animTimer: Math.random() * 100 },
+      { x: 64 * TILE, y: 8 * TILE, type: 'key', collected: false, animTimer: Math.random() * 100 },
+    ];
+
+    this.exit = { x: 67 * TILE, y: 6 * TILE, w: TILE * 1.5, h: 3 * TILE, locked: true };
+
+    this.enemies = [
+      {
+        x: 10 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 4 * TILE, patrolB: 20 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.2, visionRange: 210, visionAngle: Math.PI / 2,
+      },
+      {
+        x: 30 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 22 * TILE, patrolB: 40 * TILE,
+        facing: -1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.3, visionRange: 230, visionAngle: Math.PI / 2.5,
+      },
+      {
+        x: 48 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 40 * TILE, patrolB: 55 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.1, visionRange: 200, visionAngle: Math.PI / 2,
+      },
+      {
+        x: 62 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 55 * TILE, patrolB: 67 * TILE,
+        facing: -1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.4, visionRange: 240, visionAngle: Math.PI / 2,
+      },
+    ];
+  }
+
+  initAlien3() {
+    this.levelWidth = 80 * TILE;
+    this.maxLevel = 3;
+
+    this.player = {
+      x: 3 * TILE, y: 11 * TILE,
+      vx: 0, vy: 0, w: CAT_W, h: CAT_H,
+      grounded: false, crouching: false,
+      facing: 1, hidden: false,
+      lives: 3, invincible: 0,
+      animFrame: 0, animTimer: 0,
+      interactCooldown: 0,
+    };
+
+    // Nave-mãe alien - labirinto orgânico
+    this.platforms = [
+      { x: 0, y: 13 * TILE, w: 80 * TILE, h: 2 * TILE },
+      { x: 0, y: 0, w: TILE, h: 15 * TILE },
+      { x: 79 * TILE, y: 0, w: TILE, h: 15 * TILE },
+      { x: 0, y: 0, w: 80 * TILE, h: TILE },
+      // Câmara de contenção
+      { x: 4 * TILE, y: 10 * TILE, w: 5 * TILE, h: TILE },
+      { x: 5 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 10 * TILE, y: 11 * TILE, w: 2 * TILE, h: TILE / 2 },
+      // Túnel orgânico
+      { x: 14 * TILE, y: 9 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 18 * TILE, y: 7 * TILE, w: 2 * TILE, h: TILE / 2 },
+      { x: 15 * TILE, y: 12 * TILE, w: 4 * TILE, h: TILE / 2 },
+      // Sala de incubação
+      { x: 22 * TILE, y: 10 * TILE, w: 7 * TILE, h: TILE },
+      { x: 23 * TILE, y: 7 * TILE, w: 5 * TILE, h: TILE / 2 },
+      { x: 24 * TILE, y: 4 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 22 * TILE, y: 12 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Corredor central
+      { x: 31 * TILE, y: 11 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 32 * TILE, y: 8 * TILE, w: 2 * TILE, h: TILE / 2 },
+      // Câmara da rainha
+      { x: 37 * TILE, y: 9 * TILE, w: 8 * TILE, h: TILE },
+      { x: 38 * TILE, y: 6 * TILE, w: 6 * TILE, h: TILE / 2 },
+      { x: 39 * TILE, y: 3 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 37 * TILE, y: 12 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 43 * TILE, y: 12 * TILE, w: 2 * TILE, h: TILE / 2 },
+      // Dutos de escape
+      { x: 47 * TILE, y: 11 * TILE, w: 2 * TILE, h: TILE / 2 },
+      { x: 50 * TILE, y: 9 * TILE, w: 2 * TILE, h: TILE / 2 },
+      { x: 48 * TILE, y: 6 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 53 * TILE, y: 7 * TILE, w: 2 * TILE, h: TILE / 2 },
+      { x: 52 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      // Área de ovos
+      { x: 57 * TILE, y: 10 * TILE, w: 6 * TILE, h: TILE },
+      { x: 58 * TILE, y: 7 * TILE, w: 4 * TILE, h: TILE / 2 },
+      { x: 59 * TILE, y: 4 * TILE, w: 2 * TILE, h: TILE / 2 },
+      // Saída da nave
+      { x: 65 * TILE, y: 11 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 69 * TILE, y: 9 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 73 * TILE, y: 7 * TILE, w: 3 * TILE, h: TILE / 2 },
+      { x: 74 * TILE, y: 10 * TILE, w: 3 * TILE, h: TILE / 2 },
+    ];
+
+    this.hidingSpots = [
+      { x: 5 * TILE, y: 11 * TILE, w: 3 * TILE, h: 2 * TILE, type: 'bed', occupied: false, color: '#3a3a5a' },
+      { x: 10 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#556688' },
+      { x: 15 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#2a2a4a' },
+      { x: 23 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'box', occupied: false, color: '#555577' },
+      { x: 27 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'dumpster', occupied: false, color: '#4a4a6a' },
+      { x: 32 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#556688' },
+      { x: 38 * TILE, y: 10 * TILE, w: 2 * TILE, h: 3 * TILE, type: 'table', occupied: false, color: '#445566' },
+      { x: 42 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#2a2a4a' },
+      { x: 44 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#3a3a5a' },
+      { x: 48 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#667788' },
+      { x: 53 * TILE, y: 12 * TILE, w: 2 * TILE, h: TILE, type: 'box', occupied: false, color: '#555577' },
+      { x: 58 * TILE, y: 11 * TILE, w: 3 * TILE, h: 2 * TILE, type: 'bed', occupied: false, color: '#3a3a5a' },
+      { x: 62 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'dumpster', occupied: false, color: '#4a4a6a' },
+      { x: 66 * TILE, y: 12 * TILE, w: TILE, h: TILE, type: 'bucket', occupied: false, color: '#556688' },
+      { x: 70 * TILE, y: 10 * TILE, w: TILE * 1.5, h: 3 * TILE, type: 'wardrobe', occupied: false, color: '#2a2a4a' },
+      { x: 75 * TILE, y: 11 * TILE, w: 2 * TILE, h: 2 * TILE, type: 'box', occupied: false, color: '#555577' },
+    ];
+
+    this.objects = [
+      { x: 6 * TILE, y: 10 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 140, broken: false, breakable: true, color: '#8877cc' },
+      { x: 8 * TILE, y: 10 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: '#bbbbdd' },
+      { x: 24 * TILE, y: 10 * TILE - 18, w: 10, h: 16, type: 'lamp', falling: false, vy: 0, grounded: true, noiseRadius: 120, broken: false, breakable: true, color: '#77ddff' },
+      { x: 27 * TILE, y: 10 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 140, broken: false, breakable: true, color: '#8877cc' },
+      { x: 39 * TILE, y: 9 * TILE - 18, w: 10, h: 16, type: 'lamp', falling: false, vy: 0, grounded: true, noiseRadius: 120, broken: false, breakable: true, color: '#77ddff' },
+      { x: 43 * TILE, y: 9 * TILE - 10, w: 8, h: 10, type: 'cup', falling: false, vy: 0, grounded: true, noiseRadius: 100, broken: false, breakable: true, color: '#bbbbdd' },
+      { x: 59 * TILE, y: 10 * TILE - 12, w: 12, h: 12, type: 'plant', falling: false, vy: 0, grounded: true, noiseRadius: 110, broken: false, breakable: true, color: '#33ddaa' },
+      { x: 62 * TILE, y: 10 * TILE - 14, w: 10, h: 14, type: 'vase', falling: false, vy: 0, grounded: true, noiseRadius: 140, broken: false, breakable: true, color: '#8877cc' },
+    ];
+
+    this.collectibles = [
+      { x: 6 * TILE, y: 6 * TILE, type: 'fish', collected: false, animTimer: 0 },
+      { x: 11 * TILE, y: 10 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 18 * TILE, y: 6 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 25 * TILE, y: 3 * TILE, type: 'yarn', collected: false, animTimer: Math.random() * 100 },
+      { x: 29 * TILE, y: 6 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 33 * TILE, y: 7 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 40 * TILE, y: 2 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 44 * TILE, y: 5 * TILE, type: 'yarn', collected: false, animTimer: Math.random() * 100 },
+      { x: 49 * TILE, y: 5 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 54 * TILE, y: 6 * TILE, type: 'food', collected: false, animTimer: Math.random() * 100 },
+      { x: 60 * TILE, y: 3 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 69 * TILE, y: 8 * TILE, type: 'fish', collected: false, animTimer: Math.random() * 100 },
+      { x: 73 * TILE, y: 6 * TILE, type: 'key', collected: false, animTimer: Math.random() * 100 },
+    ];
+
+    this.exit = { x: 76 * TILE, y: 7 * TILE, w: TILE * 1.5, h: 3 * TILE, locked: true };
+
+    this.enemies = [
+      {
+        x: 8 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 3 * TILE, patrolB: 16 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.3, visionRange: 220, visionAngle: Math.PI / 2,
+      },
+      {
+        x: 25 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 18 * TILE, patrolB: 35 * TILE,
+        facing: -1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.4, visionRange: 240, visionAngle: Math.PI / 2,
+      },
+      {
+        x: 40 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 35 * TILE, patrolB: 50 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.5, visionRange: 230, visionAngle: Math.PI / 2.5,
+      },
+      {
+        x: 55 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 48 * TILE, patrolB: 65 * TILE,
+        facing: -1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.6, visionRange: 250, visionAngle: Math.PI / 2,
+      },
+      {
+        x: 70 * TILE, y: 13 * TILE - 40, w: 18, h: 38,
+        patrolA: 63 * TILE, patrolB: 77 * TILE,
+        facing: 1, state: 'normal', stateTimer: 0, investigateX: 0,
+        speed: 1.7, visionRange: 260, visionAngle: Math.PI / 2,
+      },
+    ];
+  }
+
   loop = () => {
     const now = performance.now();
     const dt = Math.min((now - this.lastTime) / 16.667, 3); // normalize to ~60fps
@@ -1142,8 +1508,8 @@ export class Game {
     // Hide timer
     if (this.hideTimer > 0) this.hideTimer -= dt;
 
-    // Zombie mode: hide in spots with E key
-    if (this.gameMode === 'zombie' && interact && this.hideTimer <= 0) {
+    // Zombie/Alien mode: hide in spots with E key
+    if ((this.gameMode === 'zombie' || this.gameMode === 'alien') && interact && this.hideTimer <= 0) {
       if (this.playerInSpot) {
         // Exit hiding spot
         this.playerInSpot.occupied = false;
@@ -1522,7 +1888,7 @@ export class Game {
     }
 
     // Clear
-    ctx.fillStyle = this.gameMode === 'zombie' ? '#0a1a0e' : COL.bg;
+    ctx.fillStyle = this.gameMode === 'alien' ? '#0a0a1e' : this.gameMode === 'zombie' ? '#0a1a0e' : COL.bg;
     ctx.fillRect(0, 0, this.width, this.height);
 
     ctx.save();
@@ -1741,25 +2107,26 @@ export class Game {
     ctx.fillStyle = '#ddaa33';
     ctx.font = '16px "Press Start 2P", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('ESCOLHA O MODO', this.width / 2, 60);
+    ctx.fillText('ESCOLHA O MODO', this.width / 2, 50);
 
-    // Normal mode card
-    const cardW = 300;
-    const cardH = 200;
-    const gap = 40;
-    const startX = (this.width - (2 * cardW + gap)) / 2;
-    const cy = 100;
-
-    const modes = [
-      { name: 'NORMAL', desc: 'Seja furtivo e cause caos!', subDesc: 'Humanos patrulham a casa', color: '#4488cc', icon: '🏠' },
-      { name: 'ZUMBI', desc: 'Sobreviva ao apocalipse!', subDesc: 'Esconda-se dos zumbis', color: '#44aa44', icon: '🧟' },
+    const modes: Array<{ name: string; desc: string; subDesc: string; color: string; icon: string; mode: 'normal' | 'zombie' | 'alien'; hint?: string; hint2?: string }> = [
+      { name: 'NORMAL', desc: 'Seja furtivo e cause caos!', subDesc: 'Humanos patrulham a casa', color: '#4488cc', icon: '🏠', mode: 'normal' },
+      { name: 'ZUMBI', desc: 'Sobreviva ao apocalipse!', subDesc: 'Esconda-se dos zumbis', color: '#44aa44', icon: '🧟', mode: 'zombie', hint: 'E = Esconder em objetos', hint2: 'Camas, armários, baldes...' },
+      { name: 'ALIEN', desc: 'Fuga da nave espacial!', subDesc: 'Aliens caçam na escuridão', color: '#8855cc', icon: '👽', mode: 'alien', hint: 'E = Esconder em objetos', hint2: 'Caixas, armários, pods...' },
     ];
 
-    const selectedMode = this.gameMode === 'zombie' ? 1 : 0;
+    const cardW = 220;
+    const cardH = 180;
+    const gap = 25;
+    const totalW = modes.length * cardW + (modes.length - 1) * gap;
+    const startX = (this.width - totalW) / 2;
+    const cy = 80;
+
+    const selectedIdx = this.gameMode === 'alien' ? 2 : this.gameMode === 'zombie' ? 1 : 0;
 
     modes.forEach((mode, i) => {
       const mx = startX + i * (cardW + gap);
-      const selected = i === selectedMode;
+      const selected = i === selectedIdx;
 
       ctx.fillStyle = selected ? `${mode.color}33` : 'rgba(255,255,255,0.05)';
       ctx.fillRect(mx, cy, cardW, cardH);
@@ -1767,29 +2134,29 @@ export class Game {
       ctx.lineWidth = selected ? 3 : 1;
       ctx.strokeRect(mx, cy, cardW, cardH);
 
-      ctx.font = '28px "Press Start 2P", monospace';
+      ctx.font = '24px "Press Start 2P", monospace';
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(mode.icon, mx + cardW / 2, cy + 50);
+      ctx.fillText(mode.icon, mx + cardW / 2, cy + 40);
 
       ctx.fillStyle = selected ? mode.color : '#aaaaaa';
-      ctx.font = '12px "Press Start 2P", monospace';
-      ctx.fillText(mode.name, mx + cardW / 2, cy + 90);
+      ctx.font = '10px "Press Start 2P", monospace';
+      ctx.fillText(mode.name, mx + cardW / 2, cy + 70);
 
       ctx.fillStyle = '#888888';
-      ctx.font = '7px "Press Start 2P", monospace';
-      ctx.fillText(mode.desc, mx + cardW / 2, cy + 120);
-      ctx.fillText(mode.subDesc, mx + cardW / 2, cy + 140);
+      ctx.font = '6px "Press Start 2P", monospace';
+      ctx.fillText(mode.desc, mx + cardW / 2, cy + 95);
+      ctx.fillText(mode.subDesc, mx + cardW / 2, cy + 112);
 
-      if (i === 1) {
-        ctx.fillStyle = '#66aa66';
-        ctx.font = '6px "Press Start 2P", monospace';
-        ctx.fillText('E = Esconder em objetos', mx + cardW / 2, cy + 165);
-        ctx.fillText('Camas, armários, baldes...', mx + cardW / 2, cy + 180);
+      if (mode.hint) {
+        ctx.fillStyle = mode.mode === 'alien' ? '#8866cc' : '#66aa66';
+        ctx.font = '5px "Press Start 2P", monospace';
+        ctx.fillText(mode.hint, mx + cardW / 2, cy + 135);
+        ctx.fillText(mode.hint2 || '', mx + cardW / 2, cy + 148);
       }
 
       ctx.fillStyle = selected ? mode.color : '#555555';
       ctx.font = '8px "Press Start 2P", monospace';
-      ctx.fillText(`[${i + 1}]`, mx + cardW / 2, cy + cardH - 10);
+      ctx.fillText(`[${i + 1}]`, mx + cardW / 2, cy + cardH - 8);
     });
 
     if (Math.sin(this.frameCount * 0.05) > 0) {
@@ -1801,13 +2168,18 @@ export class Game {
     this.frameCount++;
 
     if (this.keysJustPressed.has('ArrowRight') || this.keysJustPressed.has('KeyD')) {
-      this.gameMode = 'zombie';
+      const modeOrder: Array<'normal' | 'zombie' | 'alien'> = ['normal', 'zombie', 'alien'];
+      const idx = modeOrder.indexOf(this.gameMode);
+      this.gameMode = modeOrder[(idx + 1) % modeOrder.length];
     }
     if (this.keysJustPressed.has('ArrowLeft') || this.keysJustPressed.has('KeyA')) {
-      this.gameMode = 'normal';
+      const modeOrder: Array<'normal' | 'zombie' | 'alien'> = ['normal', 'zombie', 'alien'];
+      const idx = modeOrder.indexOf(this.gameMode);
+      this.gameMode = modeOrder[(idx - 1 + modeOrder.length) % modeOrder.length];
     }
     if (this.keysJustPressed.has('Digit1')) this.gameMode = 'normal';
     if (this.keysJustPressed.has('Digit2')) this.gameMode = 'zombie';
+    if (this.keysJustPressed.has('Digit3')) this.gameMode = 'alien';
 
     if (this.keysJustPressed.has('Space') || this.keysJustPressed.has('Enter')) {
       this.startGame();
@@ -1867,30 +2239,30 @@ export class Game {
       if (plat.y >= 13 * TILE) {
         // Floor
         for (let tx = plat.x; tx < plat.x + plat.w; tx += TILE) {
-          ctx.fillStyle = this.gameMode === 'zombie' ? '#2a3328' : COL.floor;
+          ctx.fillStyle = this.gameMode === 'alien' ? '#1a1a3a' : this.gameMode === 'zombie' ? '#2a3328' : COL.floor;
           ctx.fillRect(tx, plat.y, TILE, TILE);
-          ctx.fillStyle = this.gameMode === 'zombie' ? '#3a4338' : COL.floorLight;
+          ctx.fillStyle = this.gameMode === 'alien' ? '#2a2a4a' : this.gameMode === 'zombie' ? '#3a4338' : COL.floorLight;
           ctx.fillRect(tx + 2, plat.y + 2, TILE - 4, 4);
           ctx.fillRect(tx + TILE / 2, plat.y + TILE / 2, TILE / 2 - 2, 4);
         }
       } else if (plat.y === 0 || plat.x === 0 || plat.x >= (this.levelWidth - 2 * TILE)) {
         // Walls/ceiling
-        ctx.fillStyle = this.gameMode === 'zombie' ? '#1a2218' : COL.wall;
+        ctx.fillStyle = this.gameMode === 'alien' ? '#0e0e2a' : this.gameMode === 'zombie' ? '#1a2218' : COL.wall;
         ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
-        ctx.fillStyle = this.gameMode === 'zombie' ? '#253325' : COL.wallLight;
+        ctx.fillStyle = this.gameMode === 'alien' ? '#1a1a3a' : this.gameMode === 'zombie' ? '#253325' : COL.wallLight;
         ctx.fillRect(plat.x, plat.y, plat.w, 2);
       } else {
         // Furniture
-        ctx.fillStyle = this.gameMode === 'zombie' ? '#3a3528' : COL.furniture;
+        ctx.fillStyle = this.gameMode === 'alien' ? '#252545' : this.gameMode === 'zombie' ? '#3a3528' : COL.furniture;
         ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
-        ctx.fillStyle = this.gameMode === 'zombie' ? '#4a4538' : COL.furnitureLight;
+        ctx.fillStyle = this.gameMode === 'alien' ? '#353565' : this.gameMode === 'zombie' ? '#4a4538' : COL.furnitureLight;
         ctx.fillRect(plat.x, plat.y, plat.w, 3);
-        ctx.fillStyle = this.gameMode === 'zombie' ? '#2a2518' : COL.furnitureDark;
+        ctx.fillStyle = this.gameMode === 'alien' ? '#151535' : this.gameMode === 'zombie' ? '#2a2518' : COL.furnitureDark;
         ctx.fillRect(plat.x, plat.y + plat.h - 2, plat.w, 2);
 
         // Furniture legs
         if (plat.h <= TILE) {
-          ctx.fillStyle = this.gameMode === 'zombie' ? '#2a2518' : COL.furnitureDark;
+          ctx.fillStyle = this.gameMode === 'alien' ? '#151535' : this.gameMode === 'zombie' ? '#2a2518' : COL.furnitureDark;
           ctx.fillRect(plat.x + 2, plat.y + plat.h, 4, 13 * TILE - plat.y - plat.h);
           ctx.fillRect(plat.x + plat.w - 6, plat.y + plat.h, 4, 13 * TILE - plat.y - plat.h);
         }
@@ -2198,6 +2570,8 @@ export class Game {
 
       if (this.gameMode === 'zombie') {
         this.renderZombie(ctx, ex, ey, enemy);
+      } else if (this.gameMode === 'alien') {
+        this.renderAlien(ctx, ex, ey, enemy);
       } else {
         this.renderHuman(ctx, ex, ey, enemy);
       }
@@ -2287,6 +2661,80 @@ export class Game {
     ctx.fillStyle = '#aa3333';
     ctx.fillRect(ex + 7, ey + 8 + wobble / 2, 1, 2);
     ctx.fillRect(ex + 10, ey + 8 + wobble / 2, 1, 2);
+  }
+
+  renderAlien(ctx: CanvasRenderingContext2D, ex: number, ey: number, enemy: Enemy) {
+    const pulse = Math.sin(this.frameCount * 0.06 + ex) * 1.5;
+
+    // Legs (thin, insectoid)
+    ctx.fillStyle = '#2a2a5a';
+    ctx.fillRect(ex + 1, ey + 26, 4, 12);
+    ctx.fillRect(ex + 6, ey + 26 + pulse, 4, 12);
+    ctx.fillRect(ex + 11, ey + 26, 4, 12);
+    // Claws
+    ctx.fillStyle = '#4444aa';
+    ctx.fillRect(ex, ey + 37, 6, 2);
+    ctx.fillRect(ex + 5, ey + 37 + pulse, 6, 2);
+    ctx.fillRect(ex + 10, ey + 37, 6, 2);
+
+    // Body (elongated)
+    ctx.fillStyle = enemy.state === 'alert' ? '#553355' : enemy.state === 'suspicious' ? '#334455' : '#2a2a4a';
+    ctx.fillRect(ex + 1, ey + 8 + pulse / 2, enemy.w - 2, 20);
+    // Carapace ridges
+    ctx.fillStyle = '#3a3a6a';
+    ctx.fillRect(ex + 3, ey + 10 + pulse / 2, 12, 2);
+    ctx.fillRect(ex + 4, ey + 15 + pulse / 2, 10, 2);
+    ctx.fillRect(ex + 3, ey + 20 + pulse / 2, 12, 2);
+    // Bio-luminescent stripe
+    const bioGlow = Math.sin(this.frameCount * 0.08) * 0.3 + 0.7;
+    ctx.fillStyle = `rgba(100,200,255,${bioGlow * 0.3})`;
+    ctx.fillRect(ex + 7, ey + 10 + pulse / 2, 4, 16);
+
+    // Arms (long, clawed)
+    ctx.fillStyle = '#2a2a5a';
+    ctx.fillRect(ex - 5, ey + 10 + pulse, 5, 3);
+    ctx.fillRect(ex - 8, ey + 12 + pulse, 4, 10);
+    ctx.fillRect(ex + enemy.w, ey + 12, 5, 3);
+    ctx.fillRect(ex + enemy.w + 3, ey + 14, 4, 10);
+    // Clawed hands
+    ctx.fillStyle = '#5555aa';
+    ctx.fillRect(ex - 10, ey + 21 + pulse, 3, 4);
+    ctx.fillRect(ex + enemy.w + 5, ey + 23, 3, 4);
+
+    // Head (elongated dome)
+    ctx.fillStyle = '#3a3a5a';
+    ctx.fillRect(ex + 2, ey - 2 + pulse / 2, 14, 12);
+    // Dome
+    ctx.fillStyle = '#2a2a4a';
+    ctx.fillRect(ex + 4, ey - 6 + pulse / 2, 10, 5);
+    ctx.fillRect(ex + 6, ey - 9 + pulse / 2, 6, 4);
+
+    // Eyes (large, glowing)
+    const eyeGlow = Math.sin(this.frameCount * 0.07) * 0.3 + 0.7;
+    ctx.fillStyle = enemy.state === 'alert' ? `rgba(255,50,80,${eyeGlow})` : `rgba(80,180,255,${eyeGlow})`;
+    const aEyeX = enemy.facing === 1 ? ex + 9 : ex + 3;
+    ctx.fillRect(aEyeX, ey + 1 + pulse / 2, 4, 4);
+    ctx.fillRect(aEyeX - 5, ey + 1 + pulse / 2, 4, 4);
+    // Eye glow aura
+    ctx.fillStyle = enemy.state === 'alert' ? 'rgba(255,50,80,0.15)' : 'rgba(80,180,255,0.1)';
+    ctx.fillRect(aEyeX - 7, ey - 1 + pulse / 2, 14, 8);
+
+    // Mandibles
+    ctx.fillStyle = '#5555aa';
+    ctx.fillRect(ex + 4, ey + 8 + pulse / 2, 3, 3);
+    ctx.fillRect(ex + 11, ey + 8 + pulse / 2, 3, 3);
+    // Inner mouth
+    ctx.fillStyle = '#1a1a3a';
+    ctx.fillRect(ex + 6, ey + 8 + pulse / 2, 6, 2);
+
+    // Antennae
+    ctx.fillStyle = '#4444aa';
+    ctx.fillRect(ex + 5, ey - 12 + pulse / 2, 1, 5);
+    ctx.fillRect(ex + 12, ey - 12 + pulse / 2, 1, 5);
+    // Antenna tips glow
+    ctx.fillStyle = `rgba(100,200,255,${eyeGlow})`;
+    ctx.fillRect(ex + 4, ey - 14 + pulse / 2, 3, 3);
+    ctx.fillRect(ex + 11, ey - 14 + pulse / 2, 3, 3);
   }
 
   renderVisionCone(ctx: CanvasRenderingContext2D, enemy: Enemy) {
@@ -2455,7 +2903,7 @@ export class Game {
     // Chaos meter
     ctx.fillStyle = '#aaaaaa';
     ctx.textAlign = 'center';
-    const modeLabel = this.gameMode === 'zombie' ? '🧟 ZUMBI' : '🏠 NORMAL';
+    const modeLabel = this.gameMode === 'alien' ? '👽 ALIEN' : this.gameMode === 'zombie' ? '🧟 ZUMBI' : '🏠 NORMAL';
     ctx.fillText(`${modeLabel} FASE ${this.currentLevel} | CAOS: ${this.chaos}`, this.width / 2, 14);
 
     // Stealth indicator
