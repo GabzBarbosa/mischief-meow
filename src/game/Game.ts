@@ -1526,7 +1526,7 @@ export class Game {
     }
 
     // Clear
-    ctx.fillStyle = this.gameMode === 'zombie' ? '#0a1a0e' : COL.bg;
+    ctx.fillStyle = this.gameMode === 'alien' ? '#0a0a1e' : this.gameMode === 'zombie' ? '#0a1a0e' : COL.bg;
     ctx.fillRect(0, 0, this.width, this.height);
 
     ctx.save();
